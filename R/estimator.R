@@ -101,8 +101,8 @@ est_mand <- function(simdat){
   }
 
   # Estimator function =========================================================
-  estimator <- function(simdat){
-    ests <- simdat %>%
+  estimator <- function(sim_elmt){
+    ests <- sim_elmt %>%
       dplyr::group_by(resp_rate) %>%
       dplyr::summarise(
         est_harvest   = sum(init_resp, na.rm = TRUE),
@@ -249,16 +249,16 @@ est_simple <- function(simdat, poststrat = FALSE){
   # Each element in 'simdat' must be split down to a single
   # level of response bias. This function does that, when it is the .f
   # argument in map()
-  extractor <- function(simdat){
-    unq_bias <- unique(simdat$resp_bias)
+  extractor <- function(sim_elmt){
+    unq_bias <- unique(sim_elmt$resp_bias)
     pops <- vector(mode = "list", length = length(unq_bias))
     for (i in seq_along(unq_bias)){
-      pops[[i]] <- filter(simdat, resp_bias == unq_bias[[i]])
+      pops[[i]] <- dplyr::filter(sim_elmt, resp_bias == unq_bias[[i]])
     }
     return(pops)
   }
 
-  splits <- map(simdat, extractor) %>%
+  splits <- purrr::map(simdat, extractor) %>%
     purrr::flatten()
 
   ests <- vector(mode = "list", length = length(splits))
@@ -270,9 +270,9 @@ est_simple <- function(simdat, poststrat = FALSE){
       purrr::map_dfr(estimator, splits[[i]])
   }
   out <- ests %>%
-    bind_rows() %>%
-    group_by(resp_bias, resp_rate) %>%
-    summarise(
+    dplyr::bind_rows() %>%
+    dplyr::group_by(resp_bias, resp_rate) %>%
+    dplyr::summarise(
       method        = "simple",
       pop_size      = simdat[[1]]$pop_size[[1]],
       true_harvest  = true_harvest[[1]],
@@ -411,16 +411,16 @@ est_vol <- function(simdat, poststrat = FALSE) {
   # Each element in 'simdat' must be split down to a single
   # level of response bias. This function does that, when it is the .f
   # argument in map()
-  extractor <- function(simdat){
-    unq_bias <- unique(simdat$resp_bias)
+  extractor <- function(sim_elmt){
+    unq_bias <- unique(sim_elmt$resp_bias)
     pops <- vector(mode = "list", length = length(unq_bias))
     for (i in seq_along(unq_bias)){
-      pops[[i]] <- filter(simdat, resp_bias == unq_bias[[i]])
+      pops[[i]] <- dplyr::filter(sim_elmt, resp_bias == unq_bias[[i]])
     }
     return(pops)
   }
 
-  splits <- map(simdat, extractor) %>%
+  splits <- purrr::map(simdat, extractor) %>%
     purrr::flatten()
 
   ests <- vector(mode = "list", length = length(splits))
@@ -433,9 +433,9 @@ est_vol <- function(simdat, poststrat = FALSE) {
   }
 
   out <- ests %>%
-    bind_rows() %>%
-    group_by(resp_bias, resp_rate) %>%
-    summarise(
+    dplyr::bind_rows() %>%
+    dplyr::group_by(resp_bias, resp_rate) %>%
+    dplyr::summarise(
       method        = "voluntary",
       pop_size      = simdat[[1]]$pop_size[[1]],
       true_harvest  = true_harvest[[1]],
