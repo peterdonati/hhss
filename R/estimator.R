@@ -14,7 +14,8 @@ NULL
 #' @param poststrat Logical. If \code{TRUE}, post-stratify respondents by the
 #' \code{group} variable. If a follow up survey is simulated, it will also be
 #' post-stratified. If \code{simdat} is from a \code{pop_mand()} output, the
-#' population cannot be post-stratified.
+#' population cannot be post-stratified. \code{survey::postStratify()} is used,
+#' with the \code{partial} argument set to \code{TRUE}.
 #'
 #' @details
 #' This function relies on the structure of \code{simdat} being unchanged from
@@ -30,14 +31,14 @@ NULL
 #' use \code{survey::svydesign()} and
 #' \code{survey::svytotal()} to estimate total harvest. Estimates are
 #' calculated a bit different when a follow up survey is simulated in the
-#' data to be estimated. In that case, two separate estimates are made using
+#' data. In that case, two separate estimates are made using
 #' \code{survey::svytotal()}. One estimate from the respondents to
 #' the initial survey and the other from respondents
 #' to follow up surveys. In the case of estimates from \code{pop_simple()},
 #' the proportion of (hunters initially responding / hunters sampled) is
 #' used to scale the initial estimate (i.e. the prop. of respondents is
 #' assumed to make up the same
-#' prop. of the entire population.) Then, the follow up respondents are assumed
+#' prop. of the entire population). Then, the follow up respondents are assumed
 #' to be representative of the remaining proportion of the entire population.
 #' This proportion is used to scale the follow up estimate.
 #' Both scaled estimates are then added together to create the combined
@@ -46,8 +47,6 @@ NULL
 #' proportion of the population that responded.\cr\cr
 #' \code{est_mand()} assumes 100\% reporting by successful hunters,
 #' so it simply sums up the total reported harvest.\cr\cr
-#' If \code{poststrat = TRUE}, \code{survey::postStratify()} is used,
-#' with the \code{partial} argument set to \code{TRUE}.
 #'
 #' @return A tibble, containing an estimate of harvest for each level of
 #' response rate and response bias. Also reports standard error, and mean
@@ -75,12 +74,14 @@ NULL
 #'   times      = 50
 #' )
 #'
-#' # then you can create estimates:
+#' # Then you can create estimates:
 #' dat_ests <- est(dat)
 #'
-#' # if you want to post-stratify by the "group" variable:
+#' # If you want to post-stratify by the "group" variable:
 #' dat_ests_ps <- est(dat, poststrat = TRUE)
-NULL
+#'
+#' # Usage is the same for all possible inputs of "simdat".
+#'
 
 
 # est() ========================================================================

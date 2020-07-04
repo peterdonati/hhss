@@ -2,16 +2,9 @@
 % Please edit documentation in R/estimator.R
 \name{est}
 \alias{est}
-\alias{est_simple}
-\alias{est_mand}
-\alias{est_vol}
 \title{Estimate total harvest}
 \usage{
-est_mand(simdat)
-
-est_simple(simdat, poststrat = FALSE)
-
-est_vol(simdat, poststrat = FALSE)
+est(simdat, poststrat = FALSE)
 }
 \arguments{
 \item{simdat}{Simulation data. An output from either \code{pop_simple()},
@@ -19,71 +12,71 @@ est_vol(simdat, poststrat = FALSE)
 
 \item{poststrat}{Logical. If \code{TRUE}, post-stratify respondents by the
 \code{group} variable. If a follow up survey is simulated, it will also be
-post-stratified.}
+post-stratified. If \code{simdat} is from a \code{pop_mand()} output, the
+population cannot be post-stratified. \code{survey::postStratify()} is used,
+with the \code{partial} argument set to \code{TRUE}.}
 }
 \value{
 A tibble, containing an estimate of harvest for each level of
-response rate, standard error, and absolute percent error, among
-other important metadata.
+response rate and response bias. Also reports standard error, and mean
+absolute percent error, among other metadata.
 }
 \description{
-Estimates total harvest from a dataset created by one of
+Estimates total harvest from a data set created by one of
 the explicit \code{\link{pop}} functions.
-\itemize{
-\item{\code{est_mand()} creates harvest estimates from a
-\code{pop_mand()} output.}
-\item{\code{est_simple()} creates harvest estimates from a
-\code{pop_simple()} output.}
-\item{\code{est_vol()} creates harvest estimates from a
-\code{pop_vol()} output.}
-}
 }
 \details{
-These functions rely on the structure of \code{simdat} being unchanged from
+This function relies on the structure of \code{simdat} being unchanged from
 its original structure to know how to create estimates.
-If you must manipulate the dataset, create estimates
+If you must manipulate the data set, create estimates
 from it first, then manipulate it.\cr\cr
-If the argument \code{simdat} contains data with multiple response rates
-simulated, the \code{est} functions will create a different estimate for
-each unique level of response rate within that data.\cr\cr
-All \code{est} functions, except
-\code{est_mand()}, use \code{survey::svydesign()} and
+If estimates are to be made from a data set that contains multiple response
+simulations, multiple response biases, and/or multiple response rates,
+this function breaks the data set down into single populations and creates
+an estimate for every single population. It then returns the averages for
+these estimates.\cr\cr
+All estimations, except those made from \code{pop_mand()} outputs,
+use \code{survey::svydesign()} and
 \code{survey::svytotal()} to estimate total harvest. Estimates are
 calculated a bit different when a follow up survey is simulated in the
-data to be estimated. In that case, two seperate estimates are made using
+data. In that case, two separate estimates are made using
 \code{survey::svytotal()}. One estimate from the respondents to
 the initial survey and the other from respondents
-to follow up surveys. In the case of \code{est_simple()}, the proportion of
-(hunters initially responding / hunters sampled) is used to scale the initial
-estimate (i.e. the prop. of respondents is assumed to make up the same
-prop. of the entire population.) Then, the follow up respondents are assumed
+to follow up surveys. In the case of estimates from \code{pop_simple()},
+the proportion of (hunters initially responding / hunters sampled) is
+used to scale the initial estimate (i.e. the prop. of respondents is
+assumed to make up the same
+prop. of the entire population). Then, the follow up respondents are assumed
 to be representative of the remaining proportion of the entire population.
+This proportion is used to scale the follow up estimate.
 Both scaled estimates are then added together to create the combined
-estimate. This is similar to \code{est_vol()}, except in that case, the
-proportion of respondents \emph{is} the proportion of the population
-that responded.\cr\cr
+estimate. This is similar to estimates made from \code{pop_vol()},
+except in that case, the proportion of initial respondents \emph{is} the
+proportion of the population that responded.\cr\cr
 \code{est_mand()} assumes 100\% reporting by successful hunters,
 so it simply sums up the total reported harvest.\cr\cr
-If \code{poststrat = TRUE}, \code{survey::postStratify()} is used,
-with the \code{partial} argument set to \code{TRUE}.
 }
 \examples{
 # Estimate harvest from a simulation where hunters report voluntarily:
 # first, you must create the data:
-dat <- hss::pop_vol(
+dat <- pop_vol(
   n          = 1000,
   split      = 0.8,
   success1   = 0.3,
   success0   = 0.7,
   resp       = c(0.2, 0.6, 0.8),
-  resp_bias  = 1.2
+  bias       = 1.2,
+  times      = 50
 )
 
-# then you can create estimates:
-dat_ests <- est_vol(dat)
+# Then you can create estimates:
+dat_ests <- est(dat)
 
-# if you want to post-stratify by the "group" variable:
-dat_ests_ps <- est_vol(dat, poststrat = TRUE)
+# If you want to post-stratify by the "group" variable:
+dat_ests_ps <- est(dat, poststrat = TRUE)
+
+# Usage is the same for all possible inputs of "simdat".
+
 }
 \seealso{
 \code{\link{pop}} for how to create the data to be input to this

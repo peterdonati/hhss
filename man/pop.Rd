@@ -9,7 +9,7 @@
 \usage{
 pop(n, split = 1, success1, success0 = success1)
 
-pop_mand(n, split = 1, success1, success0 = success1, resp)
+pop_mand(n, split = 1, success1, success0 = success1, resp, times = 1)
 
 pop_simple(
   n,
@@ -18,9 +18,10 @@ pop_simple(
   success0 = success1,
   sample,
   resp,
-  resp_bias,
+  bias,
   fus = FALSE,
-  fus_scale = NULL
+  fus_scale = NULL,
+  times = 1
 )
 
 pop_vol(
@@ -29,10 +30,11 @@ pop_vol(
   success1,
   success0 = success1,
   resp,
-  resp_bias,
+  bias,
   fus = FALSE,
+  fus_scale = NULL,
   fus_sample = NULL,
-  fus_scale = NULL
+  times = 1
 )
 }
 \arguments{
@@ -45,8 +47,8 @@ The remaining proportion (i.e. \code{1 - split}) will be in group 0.}
 
 \item{success0}{Probability of a hunter in group 0 to harvest}
 
-\item{resp}{Probability/probabilities of response. Can be a vector of
-length > 1.
+\item{resp}{Probability/probabilities of response. Multiple values can be
+passed to it.
 \itemize{
 \item In \code{pop_simple()} and \code{pop_vol()} it defines response
 probabilities for unsuccessful hunters.
@@ -55,11 +57,14 @@ response probabilities for successful hunters, as they are the only ones
 mandated to report.
 }}
 
+\item{times}{The number of times to simulate responses from
+the same population.}
+
 \item{sample}{Probability a hunter is sampled for a survey}
 
-\item{resp_bias}{Scales \code{resp} to create probabilities of response
-for successful hunters. Introduces response bias between successful and
-unsuccessful hunters if not equal to one.}
+\item{bias}{Introduces response bias if not equal to one. Scales \code{resp}
+to create probabilities of response for successful hunters. Multiple values
+can be passed to it.}
 
 \item{fus}{Logical. If TRUE, a single follow up survey will be simulated.}
 
@@ -70,13 +75,38 @@ creating new probabilities of response for follow up surveys.}
 up survey.}
 }
 \value{
-A tibble, containing the simulated population and response results,
-alongside other metadata.
+A list, where the length is equal to \code{times}. Each element in
+the list is a single tibble where each row represents a hunter.
+The tibble will contain some of these variables:
+\itemize{
+\item \strong{method}: The survey method that was used to gather responses.
+\item \strong{pop_size}: The population size.
+\item \strong{true_harvest}: The sum of harvests from the population.
+\item \strong{group}: The group in which the hunter was placed.
+\item \strong{harvest}: "1" for a successful hunter, and "0" if unsuccessful.
+\item \strong{sample}: "1" if the hunter was asked to participate in the
+initial survey, "0" otherwise.
+\item \strong{resp_bias}: The response bias currently being simulated.
+\item \strong{uns_resp_rate}: The probability at which a hunter will respond
+to an initial survey if they were unsuccessful.
+\item \strong{suc_resp_rate}: The probability at which a hunter will respond
+to an initial survey if they were successful.
+\item \strong{init_resp}: "1" if the hunter responded to the initial survey,
+"0" otherwise.
+\item \strong{fus_uns_resp_rate}: The probability at which a hunter will
+respond to a follow up survey if they were unsuccessful.
+\item \strong{fus_suc_resp_rate}: The probability at which a hunter will
+respond to a follow up survey if they were successful.
+\item \strong{fus_sample}: "1" if the hunter was asked to participate in a
+follow up survey, "0" otherwise.
+\item \strong{fus_resp}: "1" if they responded to the follow up survey,
+"0" otherwise.
+}
 }
 \description{
 The pop functions will simulate a population of hunters and whether or not
 they were successful in harvesting. If a survey method is specified,
-response to surveys are also simulated. \cr
+responses are also simulated. \cr
 \itemize{
 \item \code{pop()} creates a population of hunters and simulates
 harvest.
@@ -90,11 +120,22 @@ Follow up surveys are completed by simple random sampling.
 }
 }
 \details{
-If any scaling arguments scale probabilities to be > 1, the probabilities
-will silently be changed to 1. \cr\cr
-If argument \code{resp} is defined to be a vector with length > 1, the same
-population will be recycled and put through a different response simulation
-for each element within the vector.
+If any scaling arguments scale probabilities to be > 1, the
+probabilities will silently be changed to 1. \cr\cr
+The \code{times} argument does not necessarily tell you how many
+simulations are completed in total. That is only true when \code{resp} and
+\code{bias} only contain one value each. For example, say you define
+\code{resp = c(0.4, 0.6)}, \code{bias = c(1, 1.1, 1.2)}, and
+\code{times = 100}. There will indeed be 100 simulations, but within each
+of those simulations there will also be a new simulation for every
+value within \code{resp} and then that will be repeated for every
+value within \code{bias}. So in this case there will be 600 simulations:
+\code{times} * the length of \code{resp} * the length of \code{bias}.\cr\cr
+The same population is used for all response simulations. This
+means that the variables "method", "pop_size", "true_harvest", "group",
+and "harvest" that are reported in the output will always be the same
+for every simulation. These columns will also repeat themselves every
+\code{n} rows within a single "Response sim x" element of the outputted list.
 }
 \examples{
 # Simulate a dataset that contains a population of 1,000 hunters and
@@ -143,4 +184,33 @@ pop_simple(
   fus_scale  = 0.7
 )
 
+# Again, a similar population as the one in the example above.
+# But now simulate more levels of response bias and repeat the simulation
+# 100 times.
+pop_simple(
+  n          = 1000,
+  split      = 0.7,
+  success1   = 0.4,
+  success0   = 0.25,
+  sample     = 0.5,
+  resp       = seq(0.3, 0.8, 0.1),
+  resp_bias  = c(1, 1.1, 1.2),
+  fus        = TRUE,
+  fus_scale  = 0.7,
+  times      = 100
+)
+
+# A voluntary scenario:
+pop_vol(
+  n          = 1000,
+  split      = 0.7,
+  success1   = 0.4,
+  success0   = 0.25,
+  resp       = c(0.3, 0.6, 1),
+  resp_bias  = c(1, 1.1, 1.2, 1.3),
+  fus        = TRUE,
+  fus_scale  = 1.2,
+  fus_sample = 0.2,
+  times      = 100
+)
 }

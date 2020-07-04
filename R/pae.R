@@ -9,9 +9,9 @@
 #' @description
 #' The \code{pae} functions simulate \strong{p}opulations \strong{a}nd
 #' \strong{e}stimate total harvest all in one step. They are
-#' wrappers around their respective \code{\link{pop}} and \code{\link{est}}
-#' functions. These functions are useful for simulating multiple populations
-#' at once.
+#' wrappers around their respective \code{\link{pop}} functions and the
+#' \code{\link{est}} function. These functions are useful when you do not need
+#' the actual population data and would like to skip that intermediate step.
 #' \itemize{
 #' \item \code{pae_mand()} simulates populations, mandates successful hunters
 #' to report their harvest, and creates harvest estimates from responses.
@@ -22,11 +22,8 @@
 #' from responses.
 #' }
 #'
-#' @param resp_bias Scales \code{resp} to create probabilities of response
-#' for successful hunters. Introduces response bias between successful and
-#' unsuccessful hunters if not equal to 1. Can be a vector with length > 1.
-#' @param resp Probability/probabilities of response. Can be a vector with
-#' length > 1.
+#' @param resp Probability/probabilities of response. Multiple values can be
+#' passed to it.
 #' \itemize{
 #' \item In \code{pae_simple()} and \code{pae_vol()} it defines response
 #' probabilities for unsuccessful hunters.
@@ -36,33 +33,18 @@
 #' }
 #' @inheritParams pop
 #' @inheritParams est
-#' @param times Defines the number of times to repeat the simulation for each
-#' element of \code{resp_bias}.
 #'
 #' @details
 #' These functions provide an easy way to replicate multiple simulations within
 #' a single function. Be aware that depending on how you define arguments, these
 #' functions may take a long time to execute. Large populations, long vectors
-#' for \code{resp} and \code{resp_bias}, and simulating many
-#' iterations using \code{times} can all take a while
-#' to execute.\cr\cr
-#' These functions differ slightly from the \code{est} functions in that you
-#' can define and simulate multiple levels of response bias at once. On top of
-#' that, the \code{times} argument will repeat each level of response bias by
-#' the \code{times} specified. For example, say you define
-#' \code{resp = c(0.4, 0.6)}, \code{resp_bias = c(1, 1.1, 1.2)}, and
-#' \code{times = 100}. Each element in \code{resp_bias} will be simulated 100
-#' \code{times} (i.e. 300 simulations total), but each of those 300 simulations
-#' also must simulate the 2 levels of \code{resp} that you defined,
-#' so you end up with an output of data that contains 600 different simulations
-#' and harvest estimates. Each unique element of \code{resp} is simulated
-#' from the same populations, but once \code{times} triggers a new iteration,
-#' it also simulates a new population.
+#' for \code{resp} and/or \code{bias}, and completing many
+#' simulations using \code{times} can all take a while
+#' to execute.
 #'
 #' @return A tibble, containing an estimate of harvest for each level of
 #' response rate, standard error, and absolute percent error, among
 #' other important metadata.\cr\cr
-#' See "Details" section for explanation of output and more information.
 #'
 #' @seealso
 #' \code{\link{pop}} and \code{\link{est}} to better understand the functions
@@ -70,8 +52,7 @@
 #'
 #' @examples
 #' # Calculate harvest estimates from a population that was surveyed using a
-#' # simple random sample. Simulate multiple response biases and repeat each
-#' # of them 100 times:
+#' # simple random sample:
 #' dat <- pae_simple(
 #'   n         = 1000,
 #'   split     = 0.7,
@@ -85,10 +66,6 @@
 #'   poststrat = FALSE,
 #'   times     = 100
 #' )
-#'
-#'
-#'
-#'
 #'
 
 NULL

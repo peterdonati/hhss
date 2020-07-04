@@ -12,7 +12,7 @@ NULL
 #' @description
 #' The pop functions will simulate a population of hunters and whether or not
 #' they were successful in harvesting. If a survey method is specified,
-#' response to surveys are also simulated. \cr
+#' responses are also simulated. \cr
 #' \itemize{
 #' \item \code{pop()} creates a population of hunters and simulates
 #' harvest.
@@ -27,9 +27,20 @@ NULL
 #'
 #' @details If any scaling arguments scale probabilities to be > 1, the
 #' probabilities will silently be changed to 1. \cr\cr
-#' If argument \code{resp} is defined to be a vector with length > 1, the same
-#' population will be recycled and put through a different response simulation
-#' for each element within the vector.
+#' The \code{times} argument does not necessarily tell you how many
+#' simulations are completed in total. That is only true when \code{resp} and
+#' \code{bias} only contain one value each. For example, say you define
+#' \code{resp = c(0.4, 0.6)}, \code{bias = c(1, 1.1, 1.2)}, and
+#' \code{times = 100}. There will indeed be 100 simulations, but within each
+#' of those simulations there will also be a new simulation for every
+#' value within \code{resp} and then that will be repeated for every
+#' value within \code{bias}. So in this case there will be 600 simulations:
+#' \code{times} * the length of \code{resp} * the length of \code{bias}.\cr\cr
+#' The same population is used for all response simulations. This
+#' means that the variables "method", "pop_size", "true_harvest", "group",
+#' and "harvest" that are reported in the output will always be the same
+#' for every simulation. These columns will also repeat themselves every
+#' \code{n} rows within a single "Response sim x" element of the outputted list.
 #'
 #' @param n The desired population size.
 #' @param split Proportion of the population that is placed into group 1.
@@ -37,8 +48,8 @@ NULL
 #' @param success1 Probability of a hunter in group 1 to harvest
 #' @param success0 Probability of a hunter in group 0 to harvest
 #' @param sample Probability a hunter is sampled for a survey
-#' @param resp Probability/probabilities of response. Can be a vector of
-#' length > 1.
+#' @param resp Probability/probabilities of response. Multiple values can be
+#' passed to it.
 #' \itemize{
 #' \item In \code{pop_simple()} and \code{pop_vol()} it defines response
 #' probabilities for unsuccessful hunters.
@@ -46,19 +57,44 @@ NULL
 #' response probabilities for successful hunters, as they are the only ones
 #' mandated to report.
 #' }
-#' @param resp_bias Scales \code{resp} to create probabilities of response
-#' for successful hunters. Introduces response bias between successful and
-#' unsuccessful hunters if not equal to one.
+#' @param bias Introduces response bias if not equal to one. Scales \code{resp}
+#' to create probabilities of response for successful hunters. Multiple values
+#' can be passed to it.
 #' @param fus Logical. If TRUE, a single follow up survey will be simulated.
 #' @param fus_scale Scales initial response probabilities,
 #' creating new probabilities of response for follow up surveys.
 #' @param fus_sample Probability that a non-respondent is sampled for a follow
 #' up survey.
-#' @param times The number of times to simulate a response from
+#' @param times The number of times to simulate responses from
 #' the same population.
 #'
-#' @return A list where each element is a tibble that contains the
-#' same population, but with a different simulation of response in each element.
+#' @return A list, where the length is equal to \code{times}. Each element in
+#' the list is a single tibble where each row represents a hunter.
+#' The tibble will contain some of these variables:
+#' \itemize{
+#' \item \strong{method}: The survey method that was used to gather responses.
+#' \item \strong{pop_size}: The population size.
+#' \item \strong{true_harvest}: The sum of harvests from the population.
+#' \item \strong{group}: The group in which the hunter was placed.
+#' \item \strong{harvest}: "1" for a successful hunter, and "0" if unsuccessful.
+#' \item \strong{sample}: "1" if the hunter was asked to participate in the
+#' initial survey, "0" otherwise.
+#' \item \strong{resp_bias}: The response bias currently being simulated.
+#' \item \strong{uns_resp_rate}: The probability at which a hunter will respond
+#' to an initial survey if they were unsuccessful.
+#' \item \strong{suc_resp_rate}: The probability at which a hunter will respond
+#' to an initial survey if they were successful.
+#' \item \strong{init_resp}: "1" if the hunter responded to the initial survey,
+#' "0" otherwise.
+#' \item \strong{fus_uns_resp_rate}: The probability at which a hunter will
+#' respond to a follow up survey if they were unsuccessful.
+#' \item \strong{fus_suc_resp_rate}: The probability at which a hunter will
+#' respond to a follow up survey if they were successful.
+#' \item \strong{fus_sample}: "1" if the hunter was asked to participate in a
+#' follow up survey, "0" otherwise.
+#' \item \strong{fus_resp}: "1" if they responded to the follow up survey,
+#' "0" otherwise.
+#' }
 #'
 #' @examples
 #' # Simulate a dataset that contains a population of 1,000 hunters and
@@ -107,7 +143,35 @@ NULL
 #'   fus_scale  = 0.7
 #' )
 #'
-
+#' # Again, a similar population as the one in the example above.
+#' # But now simulate more levels of response bias and repeat the simulation
+#' # 100 times.
+#' pop_simple(
+#'   n          = 1000,
+#'   split      = 0.7,
+#'   success1   = 0.4,
+#'   success0   = 0.25,
+#'   sample     = 0.5,
+#'   resp       = seq(0.3, 0.8, 0.1),
+#'   resp_bias  = c(1, 1.1, 1.2),
+#'   fus        = TRUE,
+#'   fus_scale  = 0.7,
+#'   times      = 100
+#' )
+#'
+#' # A voluntary scenario:
+#' pop_vol(
+#'   n          = 1000,
+#'   split      = 0.7,
+#'   success1   = 0.4,
+#'   success0   = 0.25,
+#'   resp       = c(0.3, 0.6, 1),
+#'   resp_bias  = c(1, 1.1, 1.2, 1.3),
+#'   fus        = TRUE,
+#'   fus_scale  = 1.2,
+#'   fus_sample = 0.2,
+#'   times      = 100
+#' )
 
 # pop() ========================================================================
 
