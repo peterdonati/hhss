@@ -57,7 +57,7 @@ NULL
 #' response probabilities for successful hunters, as they are the only ones
 #' mandated to report.
 #' }
-#' @param bias Introduces response bias if not equal to one. Scales \code{resp}
+#' @param bias Introduces response bias if not equal to 1. Scales \code{resp}
 #' to create probabilities of response for successful hunters. Multiple values
 #' can be passed to it.
 #' @param fus Logical. If TRUE, a single follow up survey will be simulated.

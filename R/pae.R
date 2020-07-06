@@ -77,7 +77,7 @@ pae_mand <- function(n, split = 1, success1, success0 = success1,
                      resp, times = 1) {
 
   dat <- pop_mand(n, split, success1, success0, resp, times)
-  out <- est_mand(dat)
+  out <- est(dat)
 
   return(out)
 }
@@ -100,7 +100,7 @@ pae_simple <- function(n, split = 1, success1, success0 = success1, sample,
                     fus_scale,
                     times)
 
-  out <- est_simple(dat)
+  out <- est(dat)
   return(out)
 }
 
@@ -108,8 +108,8 @@ pae_simple <- function(n, split = 1, success1, success0 = success1, sample,
 #' @rdname pae
 
 pae_vol <- function(n, split = 1, success1, success0 = success1, resp,
-                    bias, fus = FALSE, fus_sample = NULL,
-                    fus_scale = NULL, poststrat = FALSE, times){
+                    bias, fus = FALSE, fus_scale = NULL,
+                    fus_sample = NULL, poststrat = FALSE, times){
 
   dat <- pop_vol(n,
                  split,
@@ -118,10 +118,10 @@ pae_vol <- function(n, split = 1, success1, success0 = success1, resp,
                  resp,
                  bias,
                  fus,
-                 fus_sample,
                  fus_scale,
+                 fus_sample,
                  times)
 
-  out <- est_vol(dat, poststrat)
+  out <- est(dat, poststrat)
   return(out)
 }

@@ -62,7 +62,7 @@ the same population.}
 
 \item{sample}{Probability a hunter is sampled for a survey}
 
-\item{bias}{Introduces response bias if not equal to one. Scales \code{resp}
+\item{bias}{Introduces response bias if not equal to 1. Scales \code{resp}
 to create probabilities of response for successful hunters. Multiple values
 can be passed to it.}
 

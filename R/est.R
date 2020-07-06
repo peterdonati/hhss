@@ -90,8 +90,17 @@ est <- function(simdat, poststrat = FALSE){
 
   methods <- purrr::map(simdat, purrr::pluck, "method", 1)
 
+  groups <- unlist(purrr::map(simdat, purrr::pluck, "group"))
+  if (length(unique(groups)) != 2 & poststrat == TRUE) {
+    poststrat <- FALSE
+    message(
+      paste0("Population cannot be post-stratified, it is not 'split'",
+             " into two groups. ")
+    )
+  }
+
   if (typeof(poststrat) != "logical") {
-    stop ("'poststrat' must be logical")
+    stop ("'poststrat' must be logical", call. = FALSE)
   }
 
   # Mandatory estimates ========================================================
@@ -108,10 +117,10 @@ est <- function(simdat, poststrat = FALSE){
       ests <- sim_elmt %>%
         dplyr::group_by(resp_rate) %>%
         dplyr::summarise(
-          est_harvest   = sum(init_resp, na.rm = TRUE),
-          est_SE        = 0L,
-          percent_error = (abs(est_harvest - true_harvest)
-                           / true_harvest) * 100,
+          est_harvest = sum(init_resp, na.rm = TRUE),
+          est_SE      = 0L,
+          ARE         = abs((est_harvest - true_harvest) / true_harvest),
+          sqer        = ((est_harvest - true_harvest)^2),
           .groups = "keep"
         )
       return(ests)
@@ -125,7 +134,8 @@ est <- function(simdat, poststrat = FALSE){
         true_hvst     = purrr::pluck(simdat, 1, "true_harvest", 1),
         mean_hvst_est = mean(est_harvest),
         mean_SE       = mean(est_SE),
-        MAPE          = mean(percent_error),
+        MARE          = mean(ARE),
+        RRMSE         = sqrt(mean(sqer)) / mean(true_harvest),
         .groups = "drop"
       )
 
@@ -202,32 +212,35 @@ est <- function(simdat, poststrat = FALSE){
             (fus_prop * survey::SE(fus_est))
 
           estout <- tibble::tibble(
-            resp_rate     = as.character(level),
-            resp_bias     = as.character(pop$resp_bias[[1]]),
-            true_harvest  = thvst,
-            est_harvest   = as.vector(combined_est),
-            est_SE        = as.vector(combined_SE),
-            percent_error = (abs(est_harvest - thvst) / thvst) * 100
+            resp_rate    = as.character(level),
+            resp_bias    = as.character(pop$resp_bias[[1]]),
+            true_harvest = thvst,
+            est_harvest  = as.vector(combined_est),
+            est_SE       = as.vector(combined_SE),
+            ARE          = abs((est_harvest - true_harvest) / true_harvest),
+            sqer         = ((est_harvest - true_harvest)^2)
           )
         } else {
           estout <- tibble::tibble(
-            resp_rate     = as.character(level),
-            resp_bias     = as.character(pop$resp_bias[[1]]),
-            true_harvest  = thvst,
-            est_harvest   = as.vector(init_est),
-            est_SE        = as.vector(survey::SE(init_est)),
-            percent_error = (abs(est_harvest - thvst) / thvst) * 100
+            resp_rate    = as.character(level),
+            resp_bias    = as.character(pop$resp_bias[[1]]),
+            true_harvest = thvst,
+            est_harvest  = as.vector(init_est),
+            est_SE       = as.vector(survey::SE(init_est)),
+            ARE          = abs((est_harvest - true_harvest) / true_harvest),
+            sqer         = ((est_harvest - true_harvest)^2)
           )
         }
       } else {
         # If there was no follow up survey simulated:
         estout <- tibble::tibble(
-          resp_rate     = as.character(level),
-          resp_bias     = as.character(pop$resp_bias[[1]]),
-          true_harvest  = thvst,
-          est_harvest   = as.vector(init_est),
-          est_SE        = as.vector(survey::SE(init_est)),
-          percent_error = (abs(est_harvest - thvst) / thvst) * 100
+          resp_rate    = as.character(level),
+          resp_bias    = as.character(pop$resp_bias[[1]]),
+          true_harvest = thvst,
+          est_harvest  = as.vector(init_est),
+          est_SE       = as.vector(survey::SE(init_est)),
+          ARE          = abs((est_harvest - true_harvest) / true_harvest),
+          sqer         = ((est_harvest - true_harvest)^2)
         )
       }
       return(estout)
@@ -265,7 +278,8 @@ est <- function(simdat, poststrat = FALSE){
         true_harvest  = true_harvest[[1]],
         mean_hvst_est = mean(est_harvest),
         mean_SE       = mean(est_SE),
-        MAPE          = mean(percent_error),
+        MARE          = mean(ARE),
+        RRMSE         = sqrt(mean(sqer)) / mean(true_harvest),
         .groups = "drop"
       )
 
@@ -346,32 +360,35 @@ est <- function(simdat, poststrat = FALSE){
             (fus_prop  * survey::SE(fus_est))
 
           estout <- tibble::tibble(
-            resp_rate     = as.character(level),
-            resp_bias     = as.character(pop$resp_bias[[1]]),
-            true_harvest  = thvst,
-            est_harvest   = as.vector(combined_est),
-            est_SE        = as.vector(combined_SE),
-            percent_error = (abs(est_harvest - thvst) / thvst) * 100
+            resp_rate    = as.character(level),
+            resp_bias    = as.character(pop$resp_bias[[1]]),
+            true_harvest = thvst,
+            est_harvest  = as.vector(combined_est),
+            est_SE       = as.vector(combined_SE),
+            ARE          = abs((est_harvest - true_harvest) / true_harvest),
+            sqer         = ((est_harvest - true_harvest)^2)
           )
         } else {
           estout <- tibble::tibble(
-            resp_rate     = as.character(level),
-            resp_bias     = as.character(pop$resp_bias[[1]]),
-            true_harvest  = thvst,
-            est_harvest   = as.vector(init_est),
-            est_SE        = as.vector(survey::SE(init_est)),
-            percent_error = (abs(est_harvest - thvst) / thvst) * 100
+            resp_rate    = as.character(level),
+            resp_bias    = as.character(pop$resp_bias[[1]]),
+            true_harvest = thvst,
+            est_harvest  = as.vector(init_est),
+            est_SE       = as.vector(survey::SE(init_est)),
+            ARE          = abs((est_harvest - true_harvest) / true_harvest),
+            sqer         = ((est_harvest - true_harvest)^2)
           )
         }
       } else {
         # If there was no follow up survey simulated:
         estout <- tibble::tibble(
-          resp_rate     = as.character(level),
-          resp_bias     = as.character(pop$resp_bias[[1]]),
-          true_harvest  = thvst,
-          est_harvest   = as.vector(init_est),
-          est_SE        = as.vector(survey::SE(init_est)),
-          percent_error = (abs(est_harvest - thvst) / thvst) * 100
+          resp_rate    = as.character(level),
+          resp_bias    = as.character(pop$resp_bias[[1]]),
+          true_harvest = thvst,
+          est_harvest  = as.vector(init_est),
+          est_SE       = as.vector(survey::SE(init_est)),
+          ARE          = abs((est_harvest - true_harvest) / true_harvest),
+          sqer         = ((est_harvest - true_harvest)^2)
         )
       }
       return(estout)
@@ -410,7 +427,8 @@ est <- function(simdat, poststrat = FALSE){
         true_harvest  = true_harvest[[1]],
         mean_hvst_est = mean(est_harvest),
         mean_SE       = mean(est_SE),
-        MAPE          = mean(percent_error),
+        MARE          = mean(ARE),
+        RRMSE         = sqrt(mean(sqer)) / mean(true_harvest),
         .groups = "drop"
       )
 
