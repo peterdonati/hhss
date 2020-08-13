@@ -2,40 +2,9 @@
 % Please edit documentation in R/pop.R
 \name{pop}
 \alias{pop}
-\alias{pop_simple}
-\alias{pop_mand}
-\alias{pop_vol}
 \title{Population and harvest survey simulations}
 \usage{
 pop(n, split = 1, success1, success0 = success1)
-
-pop_mand(n, split = 1, success1, success0 = success1, resp, times = 1)
-
-pop_simple(
-  n,
-  split = 1,
-  success1,
-  success0 = success1,
-  sample,
-  resp,
-  bias,
-  fus = FALSE,
-  fus_scale = NULL,
-  times = 1
-)
-
-pop_vol(
-  n,
-  split = 1,
-  success1,
-  success0 = success1,
-  resp,
-  bias,
-  fus = FALSE,
-  fus_scale = NULL,
-  fus_sample = NULL,
-  times = 1
-)
 }
 \arguments{
 \item{n}{The desired population size.}
@@ -46,171 +15,23 @@ The remaining proportion (i.e. \code{1 - split}) will be in group 0.}
 \item{success1}{Probability of a hunter in group 1 to harvest}
 
 \item{success0}{Probability of a hunter in group 0 to harvest}
-
-\item{resp}{Probability/probabilities of response. Multiple values can be
-passed to it.
-\itemize{
-\item In \code{pop_simple()} and \code{pop_vol()} it defines response
-probabilities for unsuccessful hunters.
-\item In \code{pop_mand()} it defines
-response probabilities for successful hunters, as they are the only ones
-mandated to report.
-}}
-
-\item{times}{The number of times to simulate responses from
-the same population.}
-
-\item{sample}{Probability a hunter is sampled for a survey}
-
-\item{bias}{Introduces response bias if not equal to 1. Scales \code{resp}
-to create probabilities of response for successful hunters. Multiple values
-can be passed to it.}
-
-\item{fus}{Logical. If TRUE, a single follow up survey will be simulated.}
-
-\item{fus_scale}{Scales initial response probabilities,
-creating new probabilities of response for follow up surveys.}
-
-\item{fus_sample}{Probability that a non-respondent is sampled for a follow
-up survey.}
 }
 \value{
-A list, where the length is equal to \code{times}. Each element in
-the list is a single tibble where each row represents a hunter.
-The tibble will contain some of these variables:
+A tibble that contains the variables:
 \itemize{
-\item \strong{method}: The survey method that was used to gather responses.
-\item \strong{pop_size}: The population size.
-\item \strong{true_harvest}: The sum of harvests from the population.
-\item \strong{group}: The group in which the hunter was placed.
-\item \strong{harvest}: "1" for a successful hunter, and "0" if unsuccessful.
-\item \strong{sample}: "1" if the hunter was asked to participate in the
-initial survey, "0" otherwise.
-\item \strong{resp_bias}: The response bias currently being simulated.
-\item \strong{uns_resp_rate}: The probability at which a hunter will respond
-to an initial survey if they were unsuccessful.
-\item \strong{suc_resp_rate}: The probability at which a hunter will respond
-to an initial survey if they were successful.
-\item \strong{init_resp}: "1" if the hunter responded to the initial survey,
-"0" otherwise.
-\item \strong{fus_uns_resp_rate}: The probability at which a hunter will
-respond to a follow up survey if they were unsuccessful.
-\item \strong{fus_suc_resp_rate}: The probability at which a hunter will
-respond to a follow up survey if they were successful.
-\item \strong{fus_sample}: "1" if the hunter was asked to participate in a
-follow up survey, "0" otherwise.
-\item \strong{fus_resp}: "1" if they responded to the follow up survey,
-"0" otherwise.
+\item \code{pop_size}: The population size.
+\item \code{true_harvest}: The sum of harvests from the population.
+\item \code{group}: The group in which the hunter was placed.
+\item \code{harvest}: "1" for a successful hunter, and "0" if unsuccessful.
 }
 }
 \description{
-The pop functions will simulate a population of hunters and whether or not
-they were successful in harvesting. If a survey method is specified,
-responses are also simulated. \cr
-\itemize{
-\item \code{pop()} creates a population of hunters and simulates
-harvest.
-\item \code{pop_simple()} creates a simulation where a population of hunters
-are surveyed using a simple random sample.
-\item \code{pop_mand()} creates a simulation where only
-successful hunters are mandated to report.
-\item \code{pop_vol()} creates a simulation where
-reporting is voluntary, and both successful and unsuccessful hunters report.
-Follow up surveys are completed by simple random sampling.
-}
-}
-\details{
-If any scaling arguments scale probabilities to be > 1, the
-probabilities will silently be changed to 1. \cr\cr
-The \code{times} argument does not necessarily tell you how many
-simulations are completed in total. That is only true when \code{resp} and
-\code{bias} only contain one value each. For example, say you define
-\code{resp = c(0.4, 0.6)}, \code{bias = c(1, 1.1, 1.2)}, and
-\code{times = 100}. There will indeed be 100 simulations, but within each
-of those simulations there will also be a new simulation for every
-value within \code{resp} and then that will be repeated for every
-value within \code{bias}. So in this case there will be 600 simulations:
-\code{times} * the length of \code{resp} * the length of \code{bias}.\cr\cr
-The same population is used for all response simulations. This
-means that the variables "method", "pop_size", "true_harvest", "group",
-and "harvest" that are reported in the output will always be the same
-for every simulation. These columns will also repeat themselves every
-\code{n} rows within a single "Response sim x" element of the outputted list.
+The pop function simulates a population of hunters and whether or not
+they were successful in harvesting.
 }
 \examples{
-# Simulate a dataset that contains a population of 1,000 hunters and
+# Simulate a population of 1,000 hunters and
 # simulates harvest where each hunter has a probability of 0.3 to harvest:
 pop(n = 1000, success1 = 0.3)
 
-# A similar population as above example, but with a simulation where
-# successful hunters are mandated to report. In this case, only ~70\% of them
-# actually report:
-pop_mand(
-  n          = 1000,
-  success1   = 0.3,
-  resp       = 0.7,
-)
-
-# A population where ~70\% of hunters are in group 1 and
-# harvest with a probability of 0.25, while the remaining ~30\%
-# are in group 0 and harvest with a probability of 0.4. Hunters are
-# sampled by simple random sampling  at a probability of 0.5. Simulate
-# multiple levels of response, where successful hunters are 1.2 times
-# more likely to respond than unsuccessful hunters:
-pop_simple(
-  n          = 1000,
-  split      = 0.7,
-  success1   = 0.25,
-  success0   = 0.4,
-  sample     = 0.5,
-  resp       = seq(0.3, 0.8, 0.1),
-  resp_bias  = 1.2
-)
-
-# Simulate a similar population as the one in the example above.
-# Except this time complete a follow up survey of the
-# non-respondents, where hunters are only 0.7 times as likely
-# (i.e. ~30\% less likely) to respond to the follow up survey as they
-# were to the initial survey:
-pop_simple(
-  n          = 1000,
-  split      = 0.7,
-  success1   = 0.4,
-  success0   = 0.25,
-  sample     = 0.5,
-  resp       = seq(0.3, 0.8, 0.1),
-  resp_bias  = 1.2,
-  fus        = TRUE,
-  fus_scale  = 0.7
-)
-
-# Again, a similar population as the one in the example above.
-# But now simulate more levels of response bias and repeat the simulation
-# 100 times.
-pop_simple(
-  n          = 1000,
-  split      = 0.7,
-  success1   = 0.4,
-  success0   = 0.25,
-  sample     = 0.5,
-  resp       = seq(0.3, 0.8, 0.1),
-  resp_bias  = c(1, 1.1, 1.2),
-  fus        = TRUE,
-  fus_scale  = 0.7,
-  times      = 100
-)
-
-# A voluntary scenario:
-pop_vol(
-  n          = 1000,
-  split      = 0.7,
-  success1   = 0.4,
-  success0   = 0.25,
-  resp       = c(0.3, 0.6, 1),
-  resp_bias  = c(1, 1.1, 1.2, 1.3),
-  fus        = TRUE,
-  fus_scale  = 1.2,
-  fus_sample = 0.2,
-  times      = 100
-)
 }
