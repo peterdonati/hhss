@@ -189,7 +189,7 @@ mand <- function(x, resp, bias, fus = FALSE,
     }
 
     survsim <- function(fillthis){
-      full_sim <- map_dfr(1:(lr * lb), ~x)
+      full_sim <- purrr::map_dfr(1:(lr * lb), ~x)
       full_sim <- mutate(
         full_sim,
         method = "mandatory",
@@ -213,6 +213,10 @@ mand <- function(x, resp, bias, fus = FALSE,
           harvest == 0 ~ rbinom(nrow(full_sim), 1, fus_uns_resp_rate)
         )
       )
+
+      full_sim <- full_sim %>%
+        select(method, pop_size, true_harvest, tidyselect::everything())
+      return(full_sim)
     }
 
     out <- purrr::map(1:times, survsim)

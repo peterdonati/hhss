@@ -37,7 +37,7 @@ pop <- function(n, split = 1, success1, success0 = success1){
       call. = FALSE
     )
   }
-  if ((split != 1 | split != 0) & success0 == success1){
+  if ((split != 1 & split != 0) & success0 == success1){
     warning (
       paste0("Population split into two groups, but both groups have same",
              " probability of harvest. Consider specifying argument",

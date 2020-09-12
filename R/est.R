@@ -80,6 +80,18 @@ est <- function(simdat){
 
   methods <- purrr::map(simdat, purrr::pluck, "method", 1)
 
+  # Each element in 'simdat' must be split down to a single
+  # level of response bias. This function does that, when it is the .f
+  # argument in map(). This function is called later on.
+  extractor <- function(sim_elmt){
+    unq_bias <- unique(sim_elmt$resp_bias)
+    pops <- vector(mode = "list", length = length(unq_bias))
+    for (i in seq_along(unq_bias)){
+      pops[[i]] <- dplyr::filter(sim_elmt, resp_bias == unq_bias[[i]])
+    }
+    return(pops)
+  }
+
   if (all(methods == "mandatory")){
     # Mandatory estimates ======================================================
 
@@ -125,19 +137,7 @@ est <- function(simdat){
         return(estout)
       }
 
-
-      # Each element in 'simdat' must be split down to a single
-      # level of response bias. This function does that, when it is the .f
-      # argument in map()
-      extractor <- function(sim_elmt){
-        unq_bias <- unique(sim_elmt$resp_bias)
-        pops <- vector(mode = "list", length = length(unq_bias))
-        for (i in seq_along(unq_bias)){
-          pops[[i]] <- dplyr::filter(sim_elmt, resp_bias == unq_bias[[i]])
-        }
-        return(pops)
-      }
-
+      # split up single levels of response bias:
       splits <- purrr::map(simdat, extractor) %>%
         purrr::flatten()
 
@@ -282,18 +282,7 @@ est <- function(simdat){
       return(estout)
     }
 
-    # Each element in 'simdat' must be split down to a single
-    # level of response bias. This function does that, when it is the .f
-    # argument in map()
-    extractor <- function(sim_elmt){
-      unq_bias <- unique(sim_elmt$resp_bias)
-      pops <- vector(mode = "list", length = length(unq_bias))
-      for (i in seq_along(unq_bias)){
-        pops[[i]] <- dplyr::filter(sim_elmt, resp_bias == unq_bias[[i]])
-      }
-      return(pops)
-    }
-
+    # split up single levels of response bias:
     splits <- purrr::map(simdat, extractor) %>%
       purrr::flatten()
 
@@ -402,18 +391,7 @@ est <- function(simdat){
       return(estout)
     }
 
-    # Each element in 'simdat' must be split down to a single
-    # level of response bias. This function does that, when it is the .f
-    # argument in map()
-    extractor <- function(sim_elmt){
-      unq_bias <- unique(sim_elmt$resp_bias)
-      pops <- vector(mode = "list", length = length(unq_bias))
-      for (i in seq_along(unq_bias)){
-        pops[[i]] <- dplyr::filter(sim_elmt, resp_bias == unq_bias[[i]])
-      }
-      return(pops)
-    }
-
+    # split up levels of response bias:
     splits <- purrr::map(simdat, extractor) %>%
       purrr::flatten()
 
