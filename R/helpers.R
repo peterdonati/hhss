@@ -45,13 +45,13 @@ multi_sim <- function(x, resp, bias, f){
 # Groups individual harvest estimate outputs and reports findings. This creates
 # a consistent output for all possible scenarios. Called by the est function.
 
-output_summarizer <- function(ests){
+output_summarizer <- function(ests, N){
   # Group, so avgs for each repetition of the same resp and bias can be made
   ests <- dplyr::group_by(ests, resp_bias, resp_rate)
 
   out <- dplyr::summarise(
     ests,
-    pop_size = simdat[[1]]$pop_size[[1]],
+    pop_size = N,
     true_hvst = mean(true_harvest),
     min_hvst_est = min(est_harvest),
     max_hvst_est = max(est_harvest),

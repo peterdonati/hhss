@@ -28,8 +28,8 @@ vol(x, resp, bias, fus = FALSE, fus_sample = NULL, fus_scale = NULL, times = 1)
 \itemize{
 \item In \code{simple()} and \code{vol()} it defines response
 probabilities for unsuccessful hunters.
-\item In \code{mand()} it defines response probabilities for successful
-hunters in initial reporting, and response probabilities for unsuccessful
+\item In \code{mand()} it defines response probabilities for initial
+reporting, and then response probabilities for unsuccessful
 hunters in follow up samples.
 }}
 
@@ -87,13 +87,14 @@ survey responses based on the method specified.
 \itemize{
     \item \code{mand()} creates a simulation where only
         successful hunters are mandated to report and a follow up sample of
-        non-respondents can be taken.
+        non-reporters can be taken through a simple random sample.
     \item \code{simple()} creates a simulation where a population of hunters
         are surveyed using a simple random sample and a follow up survey of
-        non-respondents can be taken.
+        non-respondents from the original sample pool can be taken.
     \item \code{vol()} creates a simulation where reporting is voluntary,
-        and both successful and unsuccessful hunters report.
-        Follow up surveys are completed by simple random sampling.
+        and both successful and unsuccessful hunters can report.
+        Follow up surveys are completed on the non-responding portion of the
+        population by simple random sampling.
 }
 }
 \details{
@@ -101,17 +102,12 @@ More than one value can be supplied to \code{resp} and \code{bias}. A new
 simulation will be completed for each unique pairing of the values passed
 to those arguments.
 \cr\cr
-The population remains unchanged for all response simulations. This
-means that the variables "method", "pop_size", "true_harvest", "group",
-and "harvest" that are reported in the output will always be the same
-for every simulation.
-\cr\cr
 If any scaling arguments scale probabilities to be > 1, the
 probabilities will silently be changed to 1.
 }
 \examples{
 # First, create a population:
-my_pop <- pop(n = 1000, split = 0.7, success1 = 0.25, success0 = 0.6)
+my_pop <- pop(N = 1000, split = 0.7, success1 = 0.25, success0 = 0.6)
 
 # Simulate a simple random sample from that population:
 simple(
@@ -122,14 +118,14 @@ simple(
   times = 10
   )
 
-# Vectors can be passed to resp and bias:
+# Multiple values can be passed to resp and bias:
 vol(
   my_pop,
   resp = seq(0.3, 0.8, 0.1),
   bias = c(1, 1.1, 1.2),
   fus = TRUE,
-  fus_scale = 1.2,
-  fus_sample = 0.2,
+  fus_scale = 0.7,
+  fus_sample = 0.4,
   times = 10
   )
 

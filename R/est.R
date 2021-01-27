@@ -2,7 +2,7 @@
 #'
 #' Estimate total harvest
 #'
-#' @description Estimates total harvest from a data set created by one of
+#' @description Estimates total harvest from a list created by one of
 #' the \code{\link{survey}} functions.
 #'
 #' @param simdat Simulation data. An output from either \code{simple()},
@@ -13,12 +13,6 @@
 #' its original structure to know how to create estimates.
 #' If you must manipulate the data set, create estimates
 #' from it first, then manipulate it.\cr\cr
-#'
-#' If estimates are to be made from a data set that contains multiple response
-#' simulations, with multiple response biases and/or multiple response rates
-#' within each simulation, this function breaks the data set down into
-#' single populations and creates an estimate for every single population.
-#' It then returns the averages for these estimates.\cr\cr
 #'
 #' All estimations use \code{survey::svydesign()} and
 #' \code{survey::svytotal()} to estimate total harvest. Estimates are
@@ -36,74 +30,107 @@
 #' to be representative of the remaining proportion of the entire population.
 #' This proportion is used to scale the follow up estimate.
 #' Both scaled estimates are then added together to create the combined
-#' estimate.\cr\cr
+#' estimate.\cr
 #'
 #' This is similar to estimates made from \code{vol()} outputs,
 #' except in that case, the proportion of initial respondents \emph{is} the
-#' proportion of the population that responded.\cr\cr
+#' proportion of the population that responded.\cr
 #'
 #' Estimates for \code{mand()} outputs assume 100\% reporting by successful
-#' hunters for initial reports. If a follow up survey was simulated, it creates
-#' a harvest estimate from the follow up sample to estimate total harvest for
-#' the non-reporting portion of the population, and then adds that to the
-#' sum of initially reported harvests.\cr\cr
+#' hunters for initial reports if there is no follow up. If a follow up survey
+#' was simulated, it creates a harvest estimate from the follow up sample to
+#' estimate total harvest for the non-reporting portion of the population, and
+#' then adds that to the sum of initially reported harvests.\cr\cr
 #'
 #' @return A tibble, containing the following variables:
 #' \itemize{
-#' \item \code{method}: The original survey method.
 #' \item \code{pop_size}: Hunter population size.
 #' \item \code{resp_bias}: Bias of successful hunters to report,
 #' relative to unsuccessful hunters.
 #' \item \code{resp_rate}: Underlying response probabilities of hunters, if
 #' there was no bias.
-#' \item \code{mean_true_hvst}:
-#' \item \code{}
+#' \item \code{true_hvst}: True harvest of population.
+#' \item \code{min_hvst_est}: Minimum harvest estimate of the survey
+#' repetitions at the response bias and response rate shown for that row.
+#' \item \code{max_hvst_est}: Maximum harvest estimate.
+#' \item \code{mean_hvst_est}: Average harvest estimate.
+#' \item \code{mean_SE}: Average standard error across repetitions.
+#' \item \code{MARE}: Mean absolute relative error.
+#' \item \code{RRMSE}: Relative root mean squared error.
 #' }
 #'
 #' @seealso
-#' \code{\link{pop}} for how to create the data to be input to this
-#' function.\cr\cr
-#' \code{\link[survey]{svydesign}}, \code{\link[survey]{svytotal}} for
+#' \code{\link{pop}} and \code{\link{survey}} for how to create the data to be
+#' input to this function.\cr\cr
+#' \code{\link[survey]{svydesign}}, \code{\link[survey]{surveysummary}} for
 #' details on how estimates are calculated.
 #'
 #' @examples
-#' # Estimate harvest from a simulation where hunters report voluntarily:
-#' # first, you must create the data:
-#' dat <- pop_vol(
-#'   n          = 1000,
-#'   split      = 0.8,
-#'   success1   = 0.3,
-#'   success0   = 0.7,
-#'   resp       = c(0.2, 0.6, 0.8),
-#'   bias       = 1.2,
-#'   times      = 50
+#' # First, make a population:
+#' my_pop <- pop(N = 10000, split = 0.7, success1 = 0.25, success0 = 0.32)
+#'
+#' # Then simulate a survey for that population:
+#' my_pop_simple_followup <- simple(
+#'   x = my_pop,
+#'   sample = 0.5,
+#'   resp = c(0.4, 0.6),
+#'   bias = seq(1, 1.3, 0.1),
+#'   fus = TRUE,
+#'   fus_scale = 0.7,
+#'   times = 10
 #' )
 #'
-#' # Then you can create estimates:
-#' dat_ests <- est(dat)
-#'
-#'
-#' # Usage is the same for all possible inputs of "simdat".
-#'
+#' # Finally, make your estimates:
+#' est(my_pop_simple_followup)
 
 
 # est() ========================================================================
+#' @export
 
 est <- function(simdat){
-
   simdat <- purrr::flatten(simdat)
-  methods <- purrr::map_chr(simdat, ~.x$method[[1]])
+  # Ensuring simdat is unchanged ===============================================
 
+  # These would be something to come back to and figure a better way to write:
+  if (length(unique(purrr::map_chr(simdat, function(x)unique(x$method)))) == 1){
+    methods <- simdat[[1]]$method[[1]]
+  } else {
+    stop (
+      "Multiple survey methods. 'simdat' must be unchanged from
+      survey function output"
+    )
+  }
 
-  if (all(methods == "mandatory")){
-    # Mandatory estimates ======================================================
+  if (
+    length(unique(
+      purrr::map_dbl(simdat, function(x)unique(x$true_harvest))
+      )) == 1
+    ){
+    thvst <- simdat[[1]]$true_harvest[[1]]
+  } else {
+    stop (
+      "Multiple true harvests. 'simdat' must be unchanged from
+      survey function output"
+    )
+  }
 
+  if (
+    length(unique(
+      purrr::map_dbl(simdat, function(x)unique(x$pop_size))
+      )) == 1
+    ){
+    N <- simdat[[1]]$pop_size[[1]]
+  } else {
+    stop (
+      "Multiple population sizes. 'simdat' must be unchanged from
+      survey function output"
+    )
+  }
+
+  # Mandatory estimates ======================================================
+  if (methods == "mandatory"){
     if ("fus_resp" %in% names(simdat[[1]])){
-
       est_mand <- function(pop_dat){
-
-        thvst <- pop_dat$true_harvest[[1]]
-        N <- pop_dat$pop_size[[1]]
 
         # Initial estimate will just be sum of reports:
         init_est <- sum(pop_dat$init_resp)
@@ -160,26 +187,21 @@ est <- function(simdat){
     # and make individual estimates:
     ests <- purrr::map_dfr(simdat, est_mand)
 
-    out <- output_summarizer(ests = ests)
+    out <- output_summarizer(ests = ests, N = N)
     return(out)
 
-  } else if (all(methods == "simple")) {
-    # SRS estimates ============================================================
+  }
 
+  # SRS estimates ==============================================================
+  else if (methods == "simple") {
     est_simp <- function(pop_dat){
-
-      thvst <- pop_dat$true_harvest[[1]]
-      N <- pop_dat$pop_size[[1]]
-
       init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
-
       init_design <- survey::svydesign(
         ids = ~1,
         probs = nrow(init_resp_only) / N,
         data = init_resp_only,
         fpc = ~pop_size
       )
-
       init_est <- survey::svytotal(~harvest, init_design)
 
       if ("fus_resp" %in% names(pop_dat)){
@@ -257,24 +279,20 @@ est <- function(simdat){
     # Use map() to pull individual simulations and make individual estimates:
     ests <- purrr::map_dfr(simdat, est_simp)
 
-    out <- output_summarizer(ests = ests)
+    out <- output_summarizer(ests = ests, N = N)
     return(out)
 
-  } else if (all(methods == "voluntary")){
-    # Voluntary estimates ======================================================
+  }
+
+  # Voluntary estimates ======================================================
+  else if (all(methods == "voluntary")){
 
     est_vol <- function(pop_dat){
-
-      thvst <- pop_dat$true_harvest[[1]]
-      N <- pop_dat$pop_size[[1]]
-
       init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
-
       init_design <- survey::svydesign(ids = ~1,
                                        probs = nrow(init_resp_only) / N,
                                        data = init_resp_only,
                                        fpc = ~pop_size)
-
       init_est <- survey::svytotal(~harvest, init_design)
 
       if ("fus_resp" %in% names(pop_dat)){
@@ -347,7 +365,7 @@ est <- function(simdat){
 
     # Use map() to pull individual simulations and make individual estimates:
     ests <- purrr::map_dfr(simdat, est_vol)
-    out <- output_summarizer(ests = ests)
+    out <- output_summarizer(ests = ests, N = N)
     return(out)
 
   } else {

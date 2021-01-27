@@ -1,13 +1,13 @@
 # Documentation ================================================================
 #
-#' Population and harvest survey simulations
+#' Population and harvest simulations
 #'
 #' @description
 #' The pop function simulates a population of hunters and whether or not
 #' they were successful in harvesting.
 #'
 #'
-#' @param n The desired population size.
+#' @param N The desired population size.
 #' @param split Proportion of the population that is placed into group 1.
 #' The remaining proportion (i.e. \code{1 - split}) will be in group 0.
 #' @param success1 Probability of a hunter in group 1 to harvest
@@ -22,14 +22,19 @@
 #' }
 #'
 #' @examples
-#' # Simulate a population of 1,000 hunters and
-#' # simulates harvest where each hunter has a probability of 0.3 to harvest:
-#' pop(n = 1000, success1 = 0.3)
+#' # Simulate a population of 10,000 hunters where each hunter has a
+#' # probability of 0.3 to harvest:
+#' pop(N = 10000, success1 = 0.3)
 #'
+#' # Simulate a population of 10,000 hunters where roughly 70% of hunters are in
+#' # group 1, and the remaining 30% are in group 0. Simulate harvest so hunters
+#' # in group 1 harvest at a probability of 0.3, and hunters in group 0 at 0.5:
+#' pop(N = 10000, split = 0.7, success1 = 0.3, success0 = 0.5)
 
 # pop() ========================================================================
-
-pop <- function(n, split = 1, success1, success0 = success1){
+#' @export
+#'
+pop <- function(N, split = 1, success1, success0 = success1){
 
   argcheck <- c(split, success1, success0)
 
@@ -60,11 +65,11 @@ pop <- function(n, split = 1, success1, success0 = success1){
   }
 
   pop <- tibble::tibble(
-    pop_size = n,
-    group = rbinom(n, 1, split),
+    pop_size = N,
+    group = rbinom(N, 1, split),
     harvest = case_when(
-      group == 1 ~ rbinom(n, 1, success1),
-      group == 0 ~ rbinom(n, 1, success0)),
+      group == 1 ~ rbinom(N, 1, success1),
+      group == 0 ~ rbinom(N, 1, success0)),
     true_harvest = sum(harvest),
   )
 

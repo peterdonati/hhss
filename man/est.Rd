@@ -13,18 +13,23 @@ est(simdat)
 \value{
 A tibble, containing the following variables:
 \itemize{
-\item \code{method}: The original survey method.
 \item \code{pop_size}: Hunter population size.
 \item \code{resp_bias}: Bias of successful hunters to report,
 relative to unsuccessful hunters.
 \item \code{resp_rate}: Underlying response probabilities of hunters, if
 there was no bias.
-\item \code{mean_true_hvst}:
-\item \code{}
+\item \code{true_hvst}: True harvest of population.
+\item \code{min_hvst_est}: Minimum harvest estimate of the survey
+repetitions at the response bias and response rate shown for that row.
+\item \code{max_hvst_est}: Maximum harvest estimate.
+\item \code{mean_hvst_est}: Average harvest estimate.
+\item \code{mean_SE}: Average standard error across repetitions.
+\item \code{MARE}: Mean absolute relative error.
+\item \code{RRMSE}: Relative root mean squared error.
 }
 }
 \description{
-Estimates total harvest from a data set created by one of
+Estimates total harvest from a list created by one of
 the \code{\link{survey}} functions.
 }
 \details{
@@ -32,12 +37,6 @@ This function relies on the structure of \code{simdat} being unchanged from
 its original structure to know how to create estimates.
 If you must manipulate the data set, create estimates
 from it first, then manipulate it.\cr\cr
-
-If estimates are to be made from a data set that contains multiple response
-simulations, with multiple response biases and/or multiple response rates
-within each simulation, this function breaks the data set down into
-single populations and creates an estimate for every single population.
-It then returns the averages for these estimates.\cr\cr
 
 All estimations use \code{survey::svydesign()} and
 \code{survey::svytotal()} to estimate total harvest. Estimates are
@@ -55,41 +54,39 @@ prop. of the entire population). Then, the follow up respondents are assumed
 to be representative of the remaining proportion of the entire population.
 This proportion is used to scale the follow up estimate.
 Both scaled estimates are then added together to create the combined
-estimate.\cr\cr
+estimate.\cr
 
 This is similar to estimates made from \code{vol()} outputs,
 except in that case, the proportion of initial respondents \emph{is} the
-proportion of the population that responded.\cr\cr
+proportion of the population that responded.\cr
 
 Estimates for \code{mand()} outputs assume 100\% reporting by successful
-hunters for initial reports. If a follow up survey was simulated, it creates
-a harvest estimate from the follow up sample to estimate total harvest for
-the non-reporting portion of the population, and then adds that to the
-sum of initially reported harvests.\cr\cr
+hunters for initial reports if there is no follow up. If a follow up survey
+was simulated, it creates a harvest estimate from the follow up sample to
+estimate total harvest for the non-reporting portion of the population, and
+then adds that to the sum of initially reported harvests.\cr\cr
 }
 \examples{
-# Estimate harvest from a simulation where hunters report voluntarily:
-# first, you must create the data:
-dat <- pop_vol(
-  n          = 1000,
-  split      = 0.8,
-  success1   = 0.3,
-  success0   = 0.7,
-  resp       = c(0.2, 0.6, 0.8),
-  bias       = 1.2,
-  times      = 50
+# First, make a population:
+my_pop <- pop(N = 10000, split = 0.7, success1 = 0.25, success0 = 0.32)
+
+# Then simulate a survey for that population:
+my_pop_simple_followup <- simple(
+  x = my_pop,
+  sample = 0.5,
+  resp = c(0.4, 0.6),
+  bias = seq(1, 1.3, 0.1),
+  fus = TRUE,
+  fus_scale = 0.7,
+  times = 10
 )
 
-# Then you can create estimates:
-dat_ests <- est(dat)
-
-
-# Usage is the same for all possible inputs of "simdat".
-
+# Finally, make your estimates:
+est(my_pop_simple_followup)
 }
 \seealso{
-\code{\link{pop}} for how to create the data to be input to this
-function.\cr\cr
-\code{\link[survey]{svydesign}}, \code{\link[survey]{svytotal}} for
+\code{\link{pop}} and \code{\link{survey}} for how to create the data to be
+input to this function.\cr\cr
+\code{\link[survey]{svydesign}}, \code{\link[survey]{surveysummary}} for
 details on how estimates are calculated.
 }

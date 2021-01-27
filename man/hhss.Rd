@@ -3,7 +3,7 @@
 \docType{package}
 \name{hhss}
 \alias{hhss}
-\title{hhss: Hunter Harvest survey simulations, and estimations of harvest.}
+\title{hhss: Hunter harvest survey simulations, and estimates of harvest.}
 \description{
 There are three types of functions within this package:
 \code{\link{pop}},
@@ -14,24 +14,8 @@ There are three types of functions within this package:
 The general flow is designed to go:\cr
 \enumerate{
     \item Make a population with \code{pop()}\cr
-    \item Take that population and put it through multiple simulations using
-        the \code{survey} functions\cr
+    \item Take that population and put it through the desired simulations
+        using the \code{survey} functions\cr
     \item Estimate total harvest from those simulations using \code{est()}
  }
 }
-\section{pop function}{
-
-Simulate a population of hunters and their harvest outcomes.
-}
-
-\section{survey functions}{
-
-Simulate response to different survey methods.
-}
-
-\section{est function}{
-
-Make total harvest estimates from simulated data created by
-survey functions.
-}
-

@@ -12,13 +12,12 @@ Imports:
     survey (>= 4.0)
 Author: Peter Donati
 Maintainer: Peter Donati <p.donati11@gmail.com>
-Description: Simulates populations of hunters who report harvest based on
-    different survey methodology. Methods include simple random sample,
-    mandatory reporting, and voluntary reporting. Creates estimates of 
+Description: Simulates populations of hunters and harvest survey responses for 
+    common survey methodologies. Methods include simple random sample,
+    mandatory reporting, and voluntary reporting. Creates estimates of total
     harvest and reports error compared to true harvests, as well as other useful
     summary statistics.
-License: GPL-3
+License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
-Suggests:

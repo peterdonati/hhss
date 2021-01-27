@@ -2,12 +2,12 @@
 % Please edit documentation in R/pop.R
 \name{pop}
 \alias{pop}
-\title{Population and harvest survey simulations}
+\title{Population and harvest simulations}
 \usage{
-pop(n, split = 1, success1, success0 = success1)
+pop(N, split = 1, success1, success0 = success1)
 }
 \arguments{
-\item{n}{The desired population size.}
+\item{N}{The desired population size.}
 
 \item{split}{Proportion of the population that is placed into group 1.
 The remaining proportion (i.e. \code{1 - split}) will be in group 0.}
@@ -30,8 +30,12 @@ The pop function simulates a population of hunters and whether or not
 they were successful in harvesting.
 }
 \examples{
-# Simulate a population of 1,000 hunters and
-# simulates harvest where each hunter has a probability of 0.3 to harvest:
-pop(n = 1000, success1 = 0.3)
+# Simulate a population of 10,000 hunters where each hunter has a
+# probability of 0.3 to harvest:
+pop(N = 10000, success1 = 0.3)
 
+# Simulate a population of 10,000 hunters where roughly 70\% of hunters are in
+# group 1, and the remaining 30\% are in group 0. Simulate harvest so hunters
+# in group 1 harvest at a probability of 0.3, and hunters in group 0 at 0.5:
+pop(N = 10000, split = 0.7, success1 = 0.3, success0 = 0.5)
 }
