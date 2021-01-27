@@ -7,13 +7,21 @@
 est(simdat)
 }
 \arguments{
-\item{simdat}{Simulation data. An output from either \code{pop_simple()},
-\code{pop_mand()}, or \code{pop_vol()}.}
+\item{simdat}{Simulation data. An output from either \code{simple()},
+\code{mand()}, or \code{vol()}.}
 }
 \value{
-A tibble, containing an estimate of harvest for each level of
-response rate and response bias. Also reports standard error, and mean
-absolute percent error, among other metadata.
+A tibble, containing the following variables:
+\itemize{
+\item \code{method}: The original survey method.
+\item \code{pop_size}: Hunter population size.
+\item \code{resp_bias}: Bias of successful hunters to report,
+relative to unsuccessful hunters.
+\item \code{resp_rate}: Underlying response probabilities of hunters, if
+there was no bias.
+\item \code{mean_true_hvst}:
+\item \code{}
+}
 }
 \description{
 Estimates total harvest from a data set created by one of
@@ -24,19 +32,22 @@ This function relies on the structure of \code{simdat} being unchanged from
 its original structure to know how to create estimates.
 If you must manipulate the data set, create estimates
 from it first, then manipulate it.\cr\cr
+
 If estimates are to be made from a data set that contains multiple response
-simulations, multiple response biases, and/or multiple response rates,
-this function breaks the data set down into single populations and creates
-an estimate for every single population. It then returns the averages for
-these estimates.\cr\cr
-All estimations, except those made from \code{pop_mand()} outputs,
-use \code{survey::svydesign()} and
+simulations, with multiple response biases and/or multiple response rates
+within each simulation, this function breaks the data set down into
+single populations and creates an estimate for every single population.
+It then returns the averages for these estimates.\cr\cr
+
+All estimations use \code{survey::svydesign()} and
 \code{survey::svytotal()} to estimate total harvest. Estimates are
 calculated a bit different when a follow up survey is simulated in the
 data. In that case, two separate estimates are made using
 \code{survey::svytotal()}. One estimate from the respondents to
 the initial survey and the other from respondents
-to follow up surveys. In the case of estimates from \code{pop_simple()},
+to follow up surveys.\cr\cr
+
+In the case of estimates from \code{simple()} outputs,
 the proportion of (hunters initially responding / hunters sampled) is
 used to scale the initial estimate (i.e. the prop. of respondents is
 assumed to make up the same
@@ -44,11 +55,17 @@ prop. of the entire population). Then, the follow up respondents are assumed
 to be representative of the remaining proportion of the entire population.
 This proportion is used to scale the follow up estimate.
 Both scaled estimates are then added together to create the combined
-estimate. This is similar to estimates made from \code{pop_vol()},
+estimate.\cr\cr
+
+This is similar to estimates made from \code{vol()} outputs,
 except in that case, the proportion of initial respondents \emph{is} the
 proportion of the population that responded.\cr\cr
-\code{est_mand()} assumes 100\% reporting by successful hunters,
-so it simply sums up the total reported harvest.\cr\cr
+
+Estimates for \code{mand()} outputs assume 100\% reporting by successful
+hunters for initial reports. If a follow up survey was simulated, it creates
+a harvest estimate from the follow up sample to estimate total harvest for
+the non-reporting portion of the population, and then adds that to the
+sum of initially reported harvests.\cr\cr
 }
 \examples{
 # Estimate harvest from a simulation where hunters report voluntarily:

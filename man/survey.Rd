@@ -10,8 +10,8 @@
 mand(
   x,
   resp,
-  bias,
   fus = FALSE,
+  bias = NULL,
   fus_sample = NULL,
   fus_scale = NULL,
   times = 1
@@ -28,16 +28,17 @@ vol(x, resp, bias, fus = FALSE, fus_sample = NULL, fus_scale = NULL, times = 1)
 \itemize{
 \item In \code{simple()} and \code{vol()} it defines response
 probabilities for unsuccessful hunters.
-\item In \code{mand()} it defines
-response probabilities for successful hunters, as they are the only ones
-mandated to report.
+\item In \code{mand()} it defines response probabilities for successful
+hunters in initial reporting, and response probabilities for unsuccessful
+hunters in follow up samples.
 }}
-
-\item{bias}{The rate(s) of response for successful hunters, relative to
-unsuccessful hunters. Introduces response bias if any value not equal to 1.}
 
 \item{fus}{Logical. If \code{TRUE}, a single follow up survey will be
 simulated.}
+
+\item{bias}{Scales the rate(s) of response for successful hunters, relative
+to unsuccessful hunters. Introduces response bias for any value not equal to
+1.}
 
 \item{fus_sample}{Probability that a non-respondent is sampled for a follow
 up survey.}
@@ -45,81 +46,76 @@ up survey.}
 \item{fus_scale}{Scales initial response probabilities,
 creating new probabilities of response for follow up surveys.}
 
-\item{times}{The number of times to simulate responses from
-the same population.}
+\item{times}{The number of times to repeat the simulation.}
 
 \item{sample}{Probability a hunter is sampled for a survey}
 }
 \value{
-A list, where the length is equal to \code{times}. Each element in
-the list is a tibble where each row represents a hunter.
-A single tibble contains some of these variables:
+A multi-level list, where the length is equal to the integer supplied
+to \code{times}. The ultimate elements are tibbles where each row represents
+a hunter. A single tibble will contain some, but not all, of these variables:
 \itemize{
 \item \code{method}: The survey method that was used to gather responses.
 \item \code{pop_size}: The population size.
 \item \code{true_harvest}: The sum of harvests from the population.
 \item \code{group}: The group in which the hunter was placed.
-\item \code{harvest}: "1" for a successful hunter, and "0" if unsuccessful.
-\item \code{sample}: "1" if the hunter was asked to participate in the
-initial survey, "0" otherwise.
+\item \code{harvest}: 1 for a successful hunter, and 0 if unsuccessful.
+\item \code{sample}: 1 if the hunter was asked to participate in the
+initial survey, 0 otherwise.
 \item \code{resp_bias}: The response bias currently being simulated.
-\item \code{resp_rate}:
+\item \code{resp_rate}: Only reported in \code{mand()} outputs.
+It is the response probability for successful hunters to initially report.
 \item \code{uns_resp_rate}: The probability at which a hunter will respond
 to an initial survey if they were unsuccessful.
 \item \code{suc_resp_rate}: The probability at which a hunter will respond
 to an initial survey if they were successful.
-\item \code{init_resp}: "1" if the hunter responded to the initial survey,
-"0" otherwise.
+\item \code{init_resp}: 1 if the hunter responded to the initial survey,
+0 otherwise.
 \item \code{fus_uns_resp_rate}: The probability at which a hunter will
 respond to a follow up survey if they were unsuccessful.
 \item \code{fus_suc_resp_rate}: The probability at which a hunter will
 respond to a follow up survey if they were successful.
-\item \code{fus_sample}: "1" if the hunter was asked to participate in a
-follow up survey, "0" otherwise.
-\item \code{fus_resp}: "1" if they responded to the follow up survey,
-"0" otherwise.
+\item \code{fus_sample}: 1 if the hunter was asked to participate in a
+follow up survey, 0 otherwise.
+\item \code{fus_resp}: 1 if they responded to the follow up survey,
+0 otherwise.
 }
 }
 \description{
 The survey functions take an output from \code{\link{pop}} and simulate
 survey responses based on the method specified.
 \itemize{
-\item \code{simple()} creates a simulation where a population of hunters
-are surveyed using a simple random sample.
-\item \code{mand()} creates a simulation where only
-successful hunters are mandated to report.
-\item \code{vol()} creates a simulation where
-reporting is voluntary, and both successful and unsuccessful hunters report.
-Follow up surveys are completed by simple random sampling.
+    \item \code{mand()} creates a simulation where only
+        successful hunters are mandated to report and a follow up sample of
+        non-respondents can be taken.
+    \item \code{simple()} creates a simulation where a population of hunters
+        are surveyed using a simple random sample and a follow up survey of
+        non-respondents can be taken.
+    \item \code{vol()} creates a simulation where reporting is voluntary,
+        and both successful and unsuccessful hunters report.
+        Follow up surveys are completed by simple random sampling.
 }
 }
 \details{
-If any scaling arguments scale probabilities to be > 1, the
-probabilities will silently be changed to 1.
+More than one value can be supplied to \code{resp} and \code{bias}. A new
+simulation will be completed for each unique pairing of the values passed
+to those arguments.
 \cr\cr
-The \code{times} argument does not necessarily tell you how many
-simulations are completed in total. That is only true when \code{resp} and
-\code{bias} contain one value each. For example, say you define
-\code{resp = c(0.4, 0.6)}, \code{bias = c(1, 1.1, 1.2)}, and
-\code{times = 100}. There will indeed be 100 simulations, but within each
-of those simulations there will also be a new simulation for every
-value within \code{resp} and then that will be repeated for every
-value within \code{bias}. So in this case there would be 600 simulations:
-\code{times} * (the length of \code{resp}) * (the length of \code{bias}).
-\cr\cr
-The same population remains unchanged for all response simulations. This
+The population remains unchanged for all response simulations. This
 means that the variables "method", "pop_size", "true_harvest", "group",
 and "harvest" that are reported in the output will always be the same
-for every simulation. These columns will also repeat themselves every
-\code{n} rows within a single "Response sim *" element of the outputted list.
+for every simulation.
+\cr\cr
+If any scaling arguments scale probabilities to be > 1, the
+probabilities will silently be changed to 1.
 }
 \examples{
 # First, create a population:
-dat <- pop(n = 1000, split = 0.7, success1 = 0.25, success0 = 0.6)
+my_pop <- pop(n = 1000, split = 0.7, success1 = 0.25, success0 = 0.6)
 
 # Simulate a simple random sample from that population:
 simple(
-  dat,
+  my_pop,
   sample = 0.4,
   resp = 0.3,
   bias = 1,
@@ -128,7 +124,7 @@ simple(
 
 # Vectors can be passed to resp and bias:
 vol(
-  dat,
+  my_pop,
   resp = seq(0.3, 0.8, 0.1),
   bias = c(1, 1.1, 1.2),
   fus = TRUE,

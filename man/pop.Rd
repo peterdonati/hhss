@@ -22,7 +22,7 @@ A tibble that contains the variables:
 \item \code{pop_size}: The population size.
 \item \code{true_harvest}: The sum of harvests from the population.
 \item \code{group}: The group in which the hunter was placed.
-\item \code{harvest}: "1" for a successful hunter, and "0" if unsuccessful.
+\item \code{harvest}: 1 for a successful hunter, and 0 if unsuccessful.
 }
 }
 \description{
