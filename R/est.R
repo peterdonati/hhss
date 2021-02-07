@@ -14,7 +14,7 @@
 #' If you must manipulate the data set, create estimates
 #' from it first, then manipulate it.\cr\cr
 #'
-#' All estimations use \code{survey::svydesign()} and
+#' All estimates use \code{survey::svydesign()} and
 #' \code{survey::svytotal()} to estimate total harvest. Estimates are
 #' calculated a bit different when a follow up survey is simulated in the
 #' data. In that case, two separate estimates are made using
@@ -50,6 +50,8 @@
 #' \item \code{resp_rate}: Underlying response probabilities of hunters, if
 #' there was no bias.
 #' \item \code{true_hvst}: True harvest of population.
+#' \item \code{mean_n}: Average total responses. Includes both initial
+#' and follow-up responses.
 #' \item \code{min_hvst_est}: Minimum harvest estimate of the survey
 #' repetitions at the response bias and response rate shown for that row.
 #' \item \code{max_hvst_est}: Maximum harvest estimate.
@@ -143,11 +145,12 @@ est <- function(simdat){
           fpc = N - sum(pop_dat$init_resp)
         )
 
-        fus_design <- survey::svydesign(ids = ~1,
-                                        probs = nrow(fus_resp_only) /
-                                          (N - sum(pop_dat$init_resp)),
-                                        data = fus_resp_only,
-                                        fpc = ~fpc)
+        fus_design <- survey::svydesign(
+          ids = ~1,
+          probs = nrow(fus_resp_only) / (N - sum(pop_dat$init_resp)),
+          data = fus_resp_only,
+          fpc = ~fpc
+        )
 
         fus_est <- survey::svytotal(~harvest, fus_design)
 
@@ -157,6 +160,7 @@ est <- function(simdat){
           resp_rate = pop_dat$resp_rate[[1]],
           resp_bias = pop_dat$resp_bias[[1]],
           true_harvest = thvst,
+          n = sum(init_est, nrow(fus_resp_only)),
           est_harvest = as.vector(combined_est),
           est_SE = as.vector(survey::SE(fus_est)), # Assume no error for init.
           ARE = abs((est_harvest - true_harvest) / true_harvest),
@@ -173,8 +177,9 @@ est <- function(simdat){
           resp_rate = pop_dat$resp_rate[[1]],
           resp_bias = NA_real_,
           true_harvest = pop_dat$true_harvest[[1]],
-          est_harvest = sum(pop_dat$init_resp, na.rm = TRUE),
-          est_SE = 0L, # Assuming 100% reporting
+          n = sum(pop_dat$init_resp, na.rm = TRUE),
+          est_harvest = n,
+          est_SE = 0L, # Because assuming 100% reporting
           ARE = abs((est_harvest - true_harvest) / true_harvest),
           sqer = ((est_harvest - true_harvest)^2)
         )
@@ -189,7 +194,6 @@ est <- function(simdat){
 
     out <- output_summarizer(ests = ests, N = N)
     return(out)
-
   }
 
   # SRS estimates ==============================================================
@@ -237,6 +241,7 @@ est <- function(simdat){
             resp_rate = pop_dat$uns_resp_rate[[1]],
             resp_bias = pop_dat$resp_bias[[1]],
             true_harvest = thvst,
+            n = sum(pop_dat$init_resp, pop_dat$fus_resp, na.rm = TRUE),
             est_harvest = as.vector(combined_est),
             est_SE = as.vector(combined_SE),
             ARE = abs((est_harvest - true_harvest) / true_harvest),
@@ -250,6 +255,7 @@ est <- function(simdat){
             resp_rate = pop_dat$uns_resp_rate[[1]],
             resp_bias = pop_dat$resp_bias[[1]],
             true_harvest = thvst,
+            n = sum(pop_dat$init_resp, na.rm = T),
             est_harvest = as.vector(init_est),
             est_SE = as.vector(survey::SE(init_est)),
             ARE = abs((est_harvest - true_harvest) / true_harvest),
@@ -267,6 +273,7 @@ est <- function(simdat){
           resp_rate = pop_dat$uns_resp_rate[[1]],
           resp_bias = pop_dat$resp_bias[[1]],
           true_harvest = thvst,
+          n = sum(pop_dat$init_resp, na.rm = T),
           est_harvest = as.vector(init_est),
           est_SE = as.vector(survey::SE(init_est)),
           ARE = abs((est_harvest - true_harvest) / true_harvest),
@@ -289,10 +296,12 @@ est <- function(simdat){
 
     est_vol <- function(pop_dat){
       init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
-      init_design <- survey::svydesign(ids = ~1,
-                                       probs = nrow(init_resp_only) / N,
-                                       data = init_resp_only,
-                                       fpc = ~pop_size)
+      init_design <- survey::svydesign(
+        ids = ~1,
+        probs = nrow(init_resp_only) / N,
+        data = init_resp_only,
+        fpc = ~pop_size
+      )
       init_est <- survey::svytotal(~harvest, init_design)
 
       if ("fus_resp" %in% names(pop_dat)){
@@ -324,6 +333,7 @@ est <- function(simdat){
             resp_rate = pop_dat$uns_resp_rate[[1]],
             resp_bias = pop_dat$resp_bias[[1]],
             true_harvest = thvst,
+            n = sum(pop_dat$init_resp, pop_dat$fus_resp, na.rm = T),
             est_harvest = as.vector(combined_est),
             est_SE = as.vector(combined_SE),
             ARE = abs((est_harvest - true_harvest) / true_harvest),
@@ -338,6 +348,7 @@ est <- function(simdat){
             resp_rate = pop_dat$uns_resp_rate[[1]],
             resp_bias = pop_dat$resp_bias[[1]],
             true_harvest = thvst,
+            n = sum(pop_dat$init_resp, na.rm = T),
             est_harvest = as.vector(init_est),
             est_SE = as.vector(survey::SE(init_est)),
             ARE = abs((est_harvest - true_harvest) / true_harvest),
@@ -354,6 +365,7 @@ est <- function(simdat){
           resp_rate = pop_dat$uns_resp_rate[[1]],
           resp_bias = pop_dat$resp_bias[[1]],
           true_harvest = thvst,
+          n = sum(pop_dat$init_resp, na.rm = T),
           est_harvest = as.vector(init_est),
           est_SE = as.vector(survey::SE(init_est)),
           ARE = abs((est_harvest - true_harvest) / true_harvest),

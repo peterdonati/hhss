@@ -19,6 +19,8 @@ relative to unsuccessful hunters.
 \item \code{resp_rate}: Underlying response probabilities of hunters, if
 there was no bias.
 \item \code{true_hvst}: True harvest of population.
+\item \code{mean_n}: Average total responses. Includes both initial
+and follow-up responses.
 \item \code{min_hvst_est}: Minimum harvest estimate of the survey
 repetitions at the response bias and response rate shown for that row.
 \item \code{max_hvst_est}: Maximum harvest estimate.
@@ -38,7 +40,7 @@ its original structure to know how to create estimates.
 If you must manipulate the data set, create estimates
 from it first, then manipulate it.\cr\cr
 
-All estimations use \code{survey::svydesign()} and
+All estimates use \code{survey::svydesign()} and
 \code{survey::svytotal()} to estimate total harvest. Estimates are
 calculated a bit different when a follow up survey is simulated in the
 data. In that case, two separate estimates are made using

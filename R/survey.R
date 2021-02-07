@@ -117,7 +117,7 @@ mand <- function(x, resp, fus = FALSE, bias = NULL,
 
   # Argument checks ----
   if (times %% 1 != 0){
-    stop ("'times' must be a whole number.")
+    stop ("'times' must be a whole number.", call. = FALSE)
   }
 
   argcheck <- c(resp, fus_sample)
@@ -254,7 +254,7 @@ simple <- function(x, sample, resp, bias,
 
   # Argument checks ----
   if (times %% 1 != 0){
-    stop ("'times' must be a whole number.")
+    stop ("'times' must be a whole number.", call. = FALSE)
   }
 
   argcheck <- c(sample, resp)
@@ -352,7 +352,7 @@ vol <- function(x, resp, bias, fus = FALSE,
 
   #Argument checks ----
   if (times %% 1 != 0){
-    stop ("'times' must be a whole number.")
+    stop ("'times' must be a whole number.", call. = FALSE)
   }
 
   argcheck <- c(fus_sample, resp)

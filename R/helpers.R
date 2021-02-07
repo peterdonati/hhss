@@ -53,6 +53,7 @@ output_summarizer <- function(ests, N){
     ests,
     pop_size = N,
     true_hvst = mean(true_harvest),
+    mean_n = mean(n),
     min_hvst_est = min(est_harvest),
     max_hvst_est = max(est_harvest),
     mean_hvst_est = mean(est_harvest),

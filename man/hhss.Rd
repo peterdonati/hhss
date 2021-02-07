@@ -3,7 +3,7 @@
 \docType{package}
 \name{hhss}
 \alias{hhss}
-\title{hhss: Hunter harvest survey simulations, and estimates of harvest.}
+\title{hhss: Hunter Harvest Survey Simulations, and estimates of harvest.}
 \description{
 There are three types of functions within this package:
 \code{\link{pop}},
