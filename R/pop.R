@@ -13,7 +13,7 @@
 #' @param success1 Probability of a hunter in group 1 to harvest
 #' @param success0 Probability of a hunter in group 0 to harvest
 #'
-#' @return A tibble that contains the variables:
+#' @return A data frame of class \code{hhss_pop} that contains the variables:
 #' \itemize{
 #' \item \code{pop_size}: The population size.
 #' \item \code{true_harvest}: The sum of harvests from the population.
@@ -74,5 +74,6 @@ pop <- function(N, split = 1, success1, success0 = success1){
   )
 
   pop <- dplyr::select(pop, pop_size, true_harvest, tidyselect::everything())
+  pop <- pop_class(pop)
   return(pop)
 }

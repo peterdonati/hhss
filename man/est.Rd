@@ -7,8 +7,8 @@
 est(simdat)
 }
 \arguments{
-\item{simdat}{Simulation data. An output from either \code{simple()},
-\code{mand()}, or \code{vol()}.}
+\item{simdat}{Survey data. An object of class \code{hhss_survsim}
+created from either \code{simple()}, \code{mand()}, or \code{vol()}.}
 }
 \value{
 A tibble, containing the following variables:
@@ -31,23 +31,19 @@ repetitions at the response bias and response rate shown for that row.
 }
 }
 \description{
-Estimates total harvest from a list created by one of
+Estimates total harvest from an object created by one of
 the \code{\link{survey}} functions.
 }
 \details{
-This function relies on the structure of \code{simdat} being unchanged from
-its original structure to know how to create estimates.
-If you must manipulate the data set, create estimates
-from it first, then manipulate it.\cr\cr
-
 All estimates use \code{survey::svydesign()} and
-\code{survey::svytotal()} to estimate total harvest. Estimates are
+\code{survey::svytotal()} to estimate total harvest.\cr
+
+Estimates are
 calculated a bit different when a follow up survey is simulated in the
 data. In that case, two separate estimates are made using
 \code{survey::svytotal()}. One estimate from the respondents to
 the initial survey and the other from respondents
-to follow up surveys.\cr\cr
-
+to follow up surveys.
 In the case of estimates from \code{simple()} outputs,
 the proportion of (hunters initially responding / hunters sampled) is
 used to scale the initial estimate (i.e. the prop. of respondents is

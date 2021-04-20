@@ -17,7 +17,7 @@ The remaining proportion (i.e. \code{1 - split}) will be in group 0.}
 \item{success0}{Probability of a hunter in group 0 to harvest}
 }
 \value{
-A tibble that contains the variables:
+A data frame of class \code{hhss_pop} that contains the variables:
 \itemize{
 \item \code{pop_size}: The population size.
 \item \code{true_harvest}: The sum of harvests from the population.

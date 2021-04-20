@@ -2,26 +2,22 @@
 #'
 #' Estimate total harvest
 #'
-#' @description Estimates total harvest from a list created by one of
+#' @description Estimates total harvest from an object created by one of
 #' the \code{\link{survey}} functions.
 #'
-#' @param simdat Simulation data. An output from either \code{simple()},
-#' \code{mand()}, or \code{vol()}.
+#' @param simdat Survey data. An object of class \code{hhss_survsim}
+#' created from either \code{simple()}, \code{mand()}, or \code{vol()}.
 #'
 #' @details
-#' This function relies on the structure of \code{simdat} being unchanged from
-#' its original structure to know how to create estimates.
-#' If you must manipulate the data set, create estimates
-#' from it first, then manipulate it.\cr\cr
-#'
 #' All estimates use \code{survey::svydesign()} and
-#' \code{survey::svytotal()} to estimate total harvest. Estimates are
+#' \code{survey::svytotal()} to estimate total harvest.\cr
+#'
+#' Estimates are
 #' calculated a bit different when a follow up survey is simulated in the
 #' data. In that case, two separate estimates are made using
 #' \code{survey::svytotal()}. One estimate from the respondents to
 #' the initial survey and the other from respondents
-#' to follow up surveys.\cr\cr
-#'
+#' to follow up surveys.
 #' In the case of estimates from \code{simple()} outputs,
 #' the proportion of (hunters initially responding / hunters sampled) is
 #' used to scale the initial estimate (i.e. the prop. of respondents is
@@ -90,43 +86,14 @@
 #' @export
 
 est <- function(simdat){
-  simdat <- purrr::flatten(simdat)
-  # Ensuring simdat is unchanged ===============================================
-
-  # These would be something to come back to and figure a better way to write:
-  if (length(unique(purrr::map_chr(simdat, function(x)unique(x$method)))) == 1){
+  # Checking simdat is from a survey function output:
+  if (!inherits(simdat, "hhss_survsim")){
+    stop ("'simdat'not of class 'hhss_survsim'")
+  } else {
+    simdat <- purrr::flatten(simdat)
     methods <- simdat[[1]]$method[[1]]
-  } else {
-    stop (
-      "Multiple survey methods. 'simdat' must be unchanged from
-      survey function output"
-    )
-  }
-
-  if (
-    length(unique(
-      purrr::map_dbl(simdat, function(x)unique(x$true_harvest))
-      )) == 1
-    ){
-    thvst <- simdat[[1]]$true_harvest[[1]]
-  } else {
-    stop (
-      "Multiple true harvests. 'simdat' must be unchanged from
-      survey function output"
-    )
-  }
-
-  if (
-    length(unique(
-      purrr::map_dbl(simdat, function(x)unique(x$pop_size))
-      )) == 1
-    ){
     N <- simdat[[1]]$pop_size[[1]]
-  } else {
-    stop (
-      "Multiple population sizes. 'simdat' must be unchanged from
-      survey function output"
-    )
+    thvst <- simdat[[1]]$true_harvest[[1]]
   }
 
   # Mandatory estimates ======================================================
@@ -193,6 +160,7 @@ est <- function(simdat){
     ests <- purrr::map_dfr(simdat, est_mand)
 
     out <- output_summarizer(ests = ests, N = N)
+    out <- as.data.frame(out)
     return(out)
   }
 
@@ -287,12 +255,12 @@ est <- function(simdat){
     ests <- purrr::map_dfr(simdat, est_simp)
 
     out <- output_summarizer(ests = ests, N = N)
+    out <- as.data.frame(out)
     return(out)
-
   }
 
   # Voluntary estimates ======================================================
-  else if (all(methods == "voluntary")){
+  else if (methods == "voluntary"){
 
     est_vol <- function(pop_dat){
       init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
