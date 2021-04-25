@@ -1,6 +1,6 @@
 # Documentation ================================================================
 #
-#' Population and harvest simulations
+#' Population and Harvest Simulations
 #'
 #' @description
 #' The pop function simulates a population of hunters and whether or not
@@ -33,7 +33,6 @@
 
 # pop() ========================================================================
 #' @export
-#'
 pop <- function(N, split = 1, success1, success0 = success1){
 
   argcheck <- c(split, success1, success0)

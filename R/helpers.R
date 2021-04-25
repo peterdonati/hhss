@@ -70,14 +70,24 @@ output_summarizer <- function(ests, N){
   return(out)
 }
 
-# Class hhss_pop ===============================================================
+# hhss_pop class ===============================================================
 pop_class <- function(x){
   class(x) <- c("hhss_pop", "data.frame")
   return(x)
 }
 
-# Class hhss_surv ==============================================================
-survsim_class <- function(x){
-  class(x) <- "hhss_survsim"
+# survsim classes ==============================================================
+survsim_mand_class <- function(x){
+  class(x) <- "survsim_mand"
+  return(x)
+}
+
+survsim_simple_class <- function(x){
+  class(x) <- "survsim_simple"
+  return(x)
+}
+
+survsim_vol_class <- function(x){
+  class(x) <- "survsim_vol"
   return(x)
 }

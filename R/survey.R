@@ -3,7 +3,7 @@
 NULL
 
 # Documentation ================================================================
-#' Survey simulations
+#' Survey Simulations
 #'
 #' @name survey
 #'
@@ -35,17 +35,17 @@ NULL
 #' If any scaling arguments scale probabilities to be > 1, the
 #' probabilities will silently be limited to 1.
 #'
-#' @param x A data frame of class \code{hhss_pop}. It is the population to
+#' @param x An output from \code{\link{pop}}. It is the population to
 #'     simulate response for.
 #' @param sample Probability a hunter is sampled for a survey
 #' @param resp Probability/probabilities of response.
-#' \itemize{
-#'     \item In \code{simple()} and \code{vol()} it defines response
-#'         probabilities for unsuccessful hunters.
-#'     \item In \code{mand()} it defines response probabilities for initial
-#'         reporting, and then response probabilities for unsuccessful
-#'         hunters in follow up samples.
-#' }
+#'     \itemize{
+#'         \item In \code{simple()} and \code{vol()} it defines response
+#'             probabilities for unsuccessful hunters.
+#'         \item In \code{mand()} it defines response probabilities for initial
+#'             reporting, and then response probabilities for unsuccessful
+#'             hunters in follow up samples.
+#'     }
 #' @param bias Scales the rate(s) of response for successful hunters, relative
 #'     to unsuccessful hunters. Introduces response bias for any value not
 #'     equal to 1.
@@ -57,7 +57,8 @@ NULL
 #'     up survey.
 #' @param times The number of times to repeat the simulation.
 #'
-#' @return A list of class \code{hhss_survsim}, where the length is equal to the
+#' @return A list of class \code{survsim_mand}, \code{survsim_simple},
+#' or \code{survsim_vol} where the length is equal to the
 #' integer supplied to \code{times}. The ultimate elements are data frames
 #' where each row represents a hunter. A single data frame will contain some,
 #' but not all, of these variables:
@@ -101,7 +102,8 @@ NULL
 #'   times = 10
 #'   )
 #'
-#' # Multiple values can be passed to resp and bias:
+#' # Multiple values can be passed to 'resp' and 'bias' arguments to create
+#' # simulations for each unique pairing of the two:
 #' vol(
 #'   my_pop,
 #'   resp = seq(0.3, 0.8, 0.1),
@@ -120,7 +122,7 @@ mand <- function(x, resp, fus = FALSE, bias = NULL,
                  fus_sample = NULL, fus_scale = NULL, times = 1){
 
   # Argument checks ----
-  if (!inherits(x, c("hhss_pop", "data.frame"))){
+  if (!inherits(x, "hhss_pop")){
     stop ("'x' not of class 'hhss_pop'")
   }
 
@@ -165,13 +167,11 @@ mand <- function(x, resp, fus = FALSE, bias = NULL,
     }
   }
 
-    if (!missing(fus_scale)) {
-      if (fus_scale > 1) {
-      message(
-        "fus_scale > 1; Hunters more likely to respond to follow up
+  if (!missing(fus_scale) && fus_scale > 1) {
+    message(
+      "fus_scale > 1; Hunters more likely to respond to follow up
         than to initial survey."
-      )
-    }
+    )
   }
 
   # Actual function ----
@@ -212,7 +212,7 @@ mand <- function(x, resp, fus = FALSE, bias = NULL,
       out[[i]] <- multi_sim_m1()
     }
     names(out) <- paste("Sim", 1:length(out))
-    out <- survsim_class(out)
+    out <- survsim_mand_class(out)
     return(out)
 
   } else if (fus) {
@@ -251,7 +251,7 @@ mand <- function(x, resp, fus = FALSE, bias = NULL,
       out[[i]] <- multi_sim(x, resp, bias, single_sim_m2)
     }
     names(out) <- paste("Sim", 1:length(out))
-    out <- survsim_class(out)
+    out <- survsim_mand_class(out)
     return(out)
   }
 }
@@ -264,7 +264,7 @@ simple <- function(x, sample, resp, bias,
                    fus = FALSE, fus_scale = NULL, times = 1) {
 
   # Argument checks ----
-  if (!inherits(x, c("hhss_pop", "data.frame"))){
+  if (!inherits(x, "hhss_pop")){
     stop ("'x' not of class 'hhss_pop'")
   }
 
@@ -280,23 +280,21 @@ simple <- function(x, sample, resp, bias,
     )
   }
 
-  if (fus & missing(fus_scale)) {
+  if (fus && missing(fus_scale)) {
     stop ("If 'fus' = TRUE, 'fus_scale' argument must be defined.",
           call. = FALSE)
   }
 
-  if (!fus & !missing(fus_scale)) {
+  if (!fus && !missing(fus_scale)) {
     stop ("'fus_scale' is defined, but 'fus' = FALSE.",
           call. = FALSE)
   }
 
-  if (!missing(fus_scale)) {
-    if (fus_scale > 1) {
-      message(
-        "fus_scale > 1; Hunters more likely to respond to follow up
+  if (!missing(fus_scale) && fus_scale > 1) {
+    message(
+      "fus_scale > 1; Hunters more likely to respond to follow up
         than to initial survey."
-      )
-    }
+    )
   }
 
   if (any(bias < 1)) {
@@ -356,7 +354,7 @@ simple <- function(x, sample, resp, bias,
   }
 
   names(out) <- paste("Sim", 1:length(out))
-  out <- survsim_class(out)
+  out <- survsim_simple_class(out)
   return(out)
 }
 
@@ -368,7 +366,7 @@ vol <- function(x, resp, bias, fus = FALSE,
                 fus_sample = NULL, fus_scale = NULL, times = 1) {
 
   #Argument checks ----
-  if (!inherits(x, c("hhss_pop", "data.frame"))){
+  if (!inherits(x, "hhss_pop")){
     stop ("'x' not of class 'hhss_pop'")
   }
 
@@ -384,7 +382,7 @@ vol <- function(x, resp, bias, fus = FALSE,
     )
   }
 
-  if (fus & (missing(fus_scale) | missing(fus_sample))){
+  if (fus && (missing(fus_scale) || missing(fus_sample))){
     stop (
       "If 'fus' = TRUE, 'fus_scale' and 'fus_sample' arguments
       must be defined.",
@@ -392,18 +390,16 @@ vol <- function(x, resp, bias, fus = FALSE,
     )
   }
 
-  if (!fus & (!missing(fus_scale) | !missing(fus_sample))){
+  if (!fus && (!missing(fus_scale) || !missing(fus_sample))){
     stop ("'fus_scale' and/or 'fus_sample' are defined, but 'fus' = FALSE.",
           call. = FALSE)
   }
 
-  if (!missing(fus_scale)){
-    if (fus_scale > 1){
-      message(
-        "fus_scale > 1; Hunters more likely to respond to follow up
+  if (!missing(fus_scale) && fus_scale > 1){
+    message(
+      "fus_scale > 1; Hunters more likely to respond to follow up
         than to voluntarily report"
-      )
-    }
+    )
   }
 
   if (any(bias < 1)) {
@@ -464,6 +460,6 @@ vol <- function(x, resp, bias, fus = FALSE,
   }
 
   names(out) <- paste("Sim", 1:length(out))
-  out <- survsim_class(out)
+  out <- survsim_vol_class(out)
   return(out)
 }

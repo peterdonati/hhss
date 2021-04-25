@@ -2,13 +2,13 @@
 % Please edit documentation in R/est.R
 \name{est}
 \alias{est}
-\title{Estimate total harvest}
+\title{Estimate Total Harvest}
 \usage{
 est(simdat)
 }
 \arguments{
-\item{simdat}{Survey data. An object of class \code{hhss_survsim}
-created from either \code{simple()}, \code{mand()}, or \code{vol()}.}
+\item{simdat}{Survey data. Must be an object
+created from either \code{mand()}, \code{simple()}, or \code{vol()}.}
 }
 \value{
 A tibble, containing the following variables:
@@ -31,8 +31,8 @@ repetitions at the response bias and response rate shown for that row.
 }
 }
 \description{
-Estimates total harvest from an object created by one of
-the \code{\link{survey}} functions.
+A generic function for estimating total harvest from objects
+created by the \code{\link{survey}} simulation functions.
 }
 \details{
 All estimates use \code{survey::svydesign()} and

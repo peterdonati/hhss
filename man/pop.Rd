@@ -2,7 +2,7 @@
 % Please edit documentation in R/pop.R
 \name{pop}
 \alias{pop}
-\title{Population and harvest simulations}
+\title{Population and Harvest Simulations}
 \usage{
 pop(N, split = 1, success1, success0 = success1)
 }

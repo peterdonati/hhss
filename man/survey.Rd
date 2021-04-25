@@ -5,7 +5,7 @@
 \alias{mand}
 \alias{simple}
 \alias{vol}
-\title{Survey simulations}
+\title{Survey Simulations}
 \usage{
 mand(
   x,
@@ -22,7 +22,7 @@ simple(x, sample, resp, bias, fus = FALSE, fus_scale = NULL, times = 1)
 vol(x, resp, bias, fus = FALSE, fus_sample = NULL, fus_scale = NULL, times = 1)
 }
 \arguments{
-\item{x}{A data frame of class \code{hhss_pop}. It is the population to
+\item{x}{An output from \code{\link{pop}}. It is the population to
 simulate response for.}
 
 \item{resp}{Probability/probabilities of response.
@@ -52,7 +52,8 @@ creating new probabilities of response for follow up surveys.}
 \item{sample}{Probability a hunter is sampled for a survey}
 }
 \value{
-A list of class \code{hhss_survsim}, where the length is equal to the
+A list of class \code{survsim_mand}, \code{survsim_simple},
+or \code{survsim_vol} where the length is equal to the
 integer supplied to \code{times}. The ultimate elements are data frames
 where each row represents a hunter. A single data frame will contain some,
 but not all, of these variables:
@@ -122,7 +123,7 @@ simple(
   times = 10
   )
 
-# Multiple values can be passed to resp and bias:
+# Multiple values can be passed to 'resp' and 'bias' arguments:
 vol(
   my_pop,
   resp = seq(0.3, 0.8, 0.1),
