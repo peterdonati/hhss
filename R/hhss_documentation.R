@@ -1,4 +1,4 @@
-#' hhss: Hunter Harvest Survey Simulations, and estimates of harvest.
+#' hhss: Hunter Harvest Survey Simulations, and Estimates of Harvest.
 #'
 #' There are three types of functions within this package:
 #' \code{\link{pop}},
