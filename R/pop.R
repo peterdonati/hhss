@@ -66,13 +66,17 @@ pop <- function(N, split = 1, success1, success0 = success1){
   pop <- tibble::tibble(
     pop_size = N,
     group = rbinom(N, 1, split),
-    harvest = case_when(
-      group == 1 ~ rbinom(N, 1, success1),
-      group == 0 ~ rbinom(N, 1, success0)),
+    harvest = ifelse(group, rbinom(N, 1, success1), rbinom(N, 1, success0)),
     true_harvest = sum(harvest),
   )
 
   pop <- dplyr::select(pop, pop_size, true_harvest, tidyselect::everything())
   pop <- pop_class(pop)
   return(pop)
+}
+
+# Helpers ======================================================================
+pop_class <- function(x){
+  class(x) <- c("hhss_pop", "data.frame")
+  return(x)
 }

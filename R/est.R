@@ -103,12 +103,9 @@ est.survsim_mand <- function(simdat){
       init_est <- sum(pop_dat$init_resp)
 
       # Separate estimate of non-respondents:
-      fus_resp_only <- dplyr::filter(pop_dat, fus_resp == 1)
+      fus_resp_only <- subset(pop_dat, fus_resp == 1)
 
-      fus_resp_only <- dplyr::mutate(
-        fus_resp_only,
-        fpc = N - sum(pop_dat$init_resp)
-      )
+      fus_resp_only$fpc <- N - sum(pop_dat$init_resp)
 
       fus_design <- survey::svydesign(
         ids = ~1,
@@ -355,5 +352,35 @@ est.survsim_vol <- function(simdat){
   # Use map() to pull individual simulations and make individual estimates:
   ests <- purrr::map_dfr(simdat, est_vol)
   out <- output_summarizer(ests = ests, N = N)
+  return(out)
+}
+
+# Helpers ======================================================================
+
+# output_summarizer() ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Groups individual harvest estimate outputs and reports findings. This creates
+# a consistent output for all possible scenarios. Called by the est function.
+output_summarizer <- function(ests, N){
+  # Group, so avgs for each repetition of the same resp and bias can be made
+  ests <- dplyr::group_by(ests, resp_bias, resp_rate)
+
+  out <- dplyr::summarise(
+    ests,
+    pop_size = N,
+    true_hvst = mean(true_harvest),
+    mean_n = mean(n),
+    min_hvst_est = min(est_harvest),
+    max_hvst_est = max(est_harvest),
+    mean_hvst_est = mean(est_harvest),
+    mean_SE = mean(est_SE),
+    MARE = mean(ARE),
+    RRMSE = sqrt(mean(sqer)) / true_hvst,
+    .groups = "drop"
+  )
+
+  out <- dplyr::select(
+    out, pop_size, resp_bias, resp_rate, tidyselect::everything()
+  )
+
   return(out)
 }
