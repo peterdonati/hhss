@@ -16,7 +16,7 @@ simple <- function(x, sample, resp, bias,
 
   argcheck <- c(sample, resp)
 
-  if (any(argcheck > 1) | any(argcheck <= 0)) {
+  if (any(argcheck > 1) || any(argcheck <= 0)) {
     stop ("'sample' and 'resp' must only contain probabilities and be > 0.",
           call. = FALSE
     )

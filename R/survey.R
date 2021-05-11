@@ -1,26 +1,30 @@
-# SURVEY FUNCTIONS (census, mand, simple) DOCUMENTATION AND HELPERS
+#####################################################################
+# SURVEY FUNCTIONS (census, mand, simple) DOCUMENTATION AND HELPERS #
+#####################################################################
+
 # Documentation ================================================================
 #' Survey Simulations
 #'
 #' @name survey
 #'
-#' @aliases mand simple vol
+#' @aliases mand simple census
 #'
 #' @description
 #' The survey functions take an output from \code{\link{pop}} and simulate
 #' survey responses based on the method specified.
 #' \itemize{
+#'     \item \code{census()} creates a simulation where
+#'         \strong{\emph{all hunters report, successful or not.}}
+#'         This mimics mandatory reporting for all hunters
+#'         regardless of success, as well as voluntary reporting.
+#'         Follow up surveys are completed on the non-responding portion of the
+#'         population by simple random sampling.
 #'     \item \code{mand()} creates a simulation where \strong{\emph{only
-#'         successful hunters are mandated to report}} and a follow up sample of
+#'         successful hunters report}} and a follow up sample of
 #'         non-reporters can be taken through a simple random sample.
 #'     \item \code{simple()} creates a simulation where a population of hunters
 #'         are surveyed using a simple random sample and a follow up survey of
 #'         non-respondents from the original sample pool can be taken.
-#'     \item \code{vol()} creates a simulation where \strong{\emph{all hunters
-#'         report, successful or not.}} Similar to voluntary reporting,
-#'         or mandatory regardless of success.
-#'         Follow up surveys are completed on the non-responding portion of the
-#'         population by simple random sampling.
 #' }
 #'
 #' @details
@@ -37,7 +41,7 @@
 #' @param sample Probability a hunter is sampled for a survey
 #' @param resp Probability/probabilities of response.
 #'     \itemize{
-#'         \item In \code{simple()} and \code{vol()} it defines response
+#'         \item In \code{simple()} and \code{census()} it defines response
 #'             probabilities for unsuccessful hunters.
 #'         \item In \code{mand()} it defines response probabilities for initial
 #'             reporting, and then response probabilities for unsuccessful
@@ -54,8 +58,8 @@
 #'     up survey.
 #' @param times The number of times to repeat the simulation.
 #'
-#' @return A list of class \code{survsim_mand}, \code{survsim_simple},
-#' or \code{survsim_vol} where the length is equal to the
+#' @return A list of class \code{survsim_census}, \code{survsim_mand},
+#' or \code{survsim_simple} where the length is equal to the
 #' integer supplied to \code{times}. The ultimate elements are data frames
 #' where each row represents a hunter. A single data frame will contain some,
 #' but not all, of these variables:
@@ -101,7 +105,7 @@
 #'
 #' # Multiple values can be passed to 'resp' and 'bias' arguments to create
 #' # simulations for each unique pairing of the two:
-#' vol(
+#' census(
 #'   my_pop,
 #'   resp = seq(0.3, 0.8, 0.1),
 #'   bias = c(1, 1.1, 1.2),

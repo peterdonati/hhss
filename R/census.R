@@ -15,7 +15,7 @@ census <- function(x, resp, bias, fus = FALSE,
   }
 
   argcheck <- c(fus_sample, resp)
-  if (any(argcheck > 1) | any(argcheck <= 0)){
+  if (any(argcheck > 1) || any(argcheck <= 0)){
     stop (
       "'resp' and 'fus_sample' must be proportions and > 0.",
       call. = FALSE
@@ -38,7 +38,7 @@ census <- function(x, resp, bias, fus = FALSE,
   if (!missing(fus_scale) && fus_scale > 1){
     message(
       "fus_scale > 1; Hunters more likely to respond to follow up
-        than to voluntarily report"
+        than to initially report"
     )
   }
 

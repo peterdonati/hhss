@@ -8,7 +8,7 @@ est(simdat)
 }
 \arguments{
 \item{simdat}{Survey data. Must be an object
-created from either \code{mand()}, \code{simple()}, or \code{vol()}.}
+created from either \code{census()}, \code{mand()}, or \code{simple()}.}
 }
 \value{
 A tibble, containing the following variables:
@@ -54,7 +54,7 @@ This proportion is used to scale the follow up estimate.
 Both scaled estimates are then added together to create the combined
 estimate.\cr
 
-This is similar to estimates made from \code{vol()} outputs,
+This is similar to estimates made from \code{census()} outputs,
 except in that case, the proportion of initial respondents \emph{is} the
 proportion of the population that responded.\cr
 

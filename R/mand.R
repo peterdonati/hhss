@@ -15,7 +15,7 @@ mand <- function(x, resp, fus = FALSE, bias = NULL,
   }
 
   argcheck <- c(resp, fus_sample)
-  if (any(argcheck > 1) | any(argcheck <= 0)) {
+  if (any(argcheck > 1) || any(argcheck <= 0)) {
     stop("'resp' and/or 'fus_sample' must be proportions and > 0.",
          call. = FALSE)
   }

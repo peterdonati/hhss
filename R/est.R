@@ -6,7 +6,7 @@
 #' created by the \code{\link{survey}} simulation functions.
 #'
 #' @param simdat Survey data. Must be an object
-#' created from either \code{mand()}, \code{simple()}, or \code{vol()}.
+#' created from either \code{census()}, \code{mand()}, or \code{simple()}.
 #'
 #' @details
 #' All estimates use \code{survey::svydesign()} and
@@ -28,7 +28,7 @@
 #' Both scaled estimates are then added together to create the combined
 #' estimate.\cr
 #'
-#' This is similar to estimates made from \code{vol()} outputs,
+#' This is similar to estimates made from \code{census()} outputs,
 #' except in that case, the proportion of initial respondents \emph{is} the
 #' proportion of the population that responded.\cr
 #'
@@ -168,7 +168,7 @@ est.survsim_simple <- function(simdat){
   thvst <- simdat[[1]]$true_harvest[[1]]
 
   est_simp <- function(pop_dat){
-    init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
+    init_resp_only <- subset(pop_dat, init_resp == 1)
     init_design <- survey::svydesign(
       ids = ~1,
       probs = nrow(init_resp_only) / N,
@@ -181,9 +181,9 @@ est.survsim_simple <- function(simdat){
 
       # If resp_rate is not less than 1, then there was nobody to follow
       # up with, so ignore this next step:
-      if (all(pop_dat$uns_resp_rate < 1) | all(pop_dat$suc_resp_rate < 1)){
+      if (all(pop_dat$uns_resp_rate < 1) || all(pop_dat$suc_resp_rate < 1)){
 
-        fus_resp_only <- dplyr::filter(pop_dat, fus_resp == 1)
+        fus_resp_only <- subset(pop_dat, fus_resp == 1)
 
         fus_design <- survey::svydesign(
           ids = ~1,
@@ -217,7 +217,7 @@ est.survsim_simple <- function(simdat){
           sqer = ((est_harvest - true_harvest)^2)
         )
 
-      } else if (all(pop_dat$uns_resp_rate == 1) &
+      } else if (all(pop_dat$uns_resp_rate == 1) &&
                  all(pop_dat$suc_resp_rate == 1)){
         # If follow up survey was planned, but everyone responded initially:
         estout <- tibble::tibble(
@@ -260,16 +260,16 @@ est.survsim_simple <- function(simdat){
   return(out)
 }
 
-# vol method ===================================================================
+# census method ================================================================
 #' @export
-est.survsim_vol <- function(simdat){
+est.survsim_census <- function(simdat){
 
   simdat <- purrr::flatten(simdat)
   N <- simdat[[1]]$pop_size[[1]]
   thvst <- simdat[[1]]$true_harvest[[1]]
 
-  est_vol <- function(pop_dat){
-    init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
+  est_census <- function(pop_dat){
+    init_resp_only <- subset(pop_dat, init_resp == 1)
     init_design <- survey::svydesign(
       ids = ~1,
       probs = nrow(init_resp_only) / N,
@@ -281,9 +281,9 @@ est.survsim_vol <- function(simdat){
     if ("fus_resp" %in% names(pop_dat)){
       # if response rate was already 1 for everyone, there is nobody to
       # follow up with,so skip the following step:
-      if (all(pop_dat$uns_resp_rate < 1) | all(pop_dat$suc_resp_rate < 1)){
+      if (all(pop_dat$uns_resp_rate < 1) || all(pop_dat$suc_resp_rate < 1)){
 
-        fus_resp_only <- dplyr::filter(pop_dat, fus_resp == 1)
+        fus_resp_only <- subset(pop_dat, fus_resp == 1)
         fus_design <- survey::svydesign(ids = ~1,
                                         probs = nrow(fus_resp_only) / N,
                                         data = fus_resp_only,
@@ -314,7 +314,7 @@ est.survsim_vol <- function(simdat){
           sqer = ((est_harvest - true_harvest)^2)
         )
 
-      } else if (all(pop_dat$uns_resp_rate == 1) &
+      } else if (all(pop_dat$uns_resp_rate == 1) &&
                  all(pop_dat$suc_resp_rate == 1)){
         # if everyone had an initial response rate of 1, then the entire
         # population responded and there was nobody to follow up with:
@@ -350,7 +350,7 @@ est.survsim_vol <- function(simdat){
   }
 
   # Use map() to pull individual simulations and make individual estimates:
-  ests <- purrr::map_dfr(simdat, est_vol)
+  ests <- purrr::map_dfr(simdat, est_census)
   out <- output_summarizer(ests = ests, N = N)
   return(out)
 }

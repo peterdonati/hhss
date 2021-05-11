@@ -37,7 +37,7 @@ pop <- function(N, split = 1, success1, success0 = success1){
 
   argcheck <- c(split, success1, success0)
 
-  if (any(argcheck > 1) | any(argcheck < 0)){
+  if (any(argcheck > 1) || any(argcheck < 0)){
     stop (
       paste0("1 or more arguments that must contain proportions or",
              " probabilities are < 0 or > 1."),
@@ -45,7 +45,7 @@ pop <- function(N, split = 1, success1, success0 = success1){
     )
   }
 
-  if ((split != 1 & split != 0) & success0 == success1){
+  if ((split != 1 && split != 0) && success0 == success1){
     warning (
       paste0("Population split into two groups, but both groups have same",
              " probability of harvest. Consider specifying argument",
@@ -54,7 +54,7 @@ pop <- function(N, split = 1, success1, success0 = success1){
     )
   }
 
-  if ((split == 1 | split == 0) & success0 != success1){
+  if ((split == 1 || split == 0) && success0 != success1){
     warning(
       paste0("Population is not 'split' into different groups, and 'success1'",
              " does not equal 'success0'. To simulate different harvest",
