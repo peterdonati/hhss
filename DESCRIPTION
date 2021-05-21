@@ -1,7 +1,7 @@
 Package: hhss
 Type: Package
 Title: Hunter Harvest Survey Simulations
-Version: 0.2.0
+Version: 0.2.1
 Imports: 
     dplyr (>= 1.0.0), 
     magrittr, 

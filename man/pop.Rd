@@ -4,22 +4,22 @@
 \alias{pop}
 \title{Population and Harvest Simulations}
 \usage{
-pop(N, split = 1, success1, success0 = success1)
+pop(N, split = 1, success1, success2 = success1)
 }
 \arguments{
 \item{N}{The desired population size.}
 
 \item{split}{Proportion of the population that is placed into group 1.
-The remaining proportion (i.e. \code{1 - split}) will be in group 0.}
+The remaining proportion, i.e. (\code{1 - split}), will be in group 2.}
 
 \item{success1}{Probability of a hunter in group 1 to harvest}
 
-\item{success0}{Probability of a hunter in group 0 to harvest}
+\item{success2}{Probability of a hunter in group 2 to harvest}
 }
 \value{
 A data frame of class \code{hhss_pop} that contains the variables:
 \itemize{
-\item \code{pop_size}: The population size.
+\item \code{N}: The population size.
 \item \code{true_harvest}: The sum of harvests from the population.
 \item \code{group}: The group in which the hunter was placed.
 \item \code{harvest}: 1 for a successful hunter, and 0 if unsuccessful.
@@ -35,7 +35,7 @@ they were successful in harvesting.
 pop(N = 10000, success1 = 0.3)
 
 # Simulate a population of 10,000 hunters where roughly 70\% of hunters are in
-# group 1, and the remaining 30\% are in group 0. Simulate harvest so hunters
-# in group 1 harvest at a probability of 0.3, and hunters in group 0 at 0.5:
-pop(N = 10000, split = 0.7, success1 = 0.3, success0 = 0.5)
+# group 1, and the remaining 30\% are in group 2. Simulate harvest so hunters
+# in group 1 harvest at a probability of 0.3, and hunters in group 2 at 0.5:
+pop(N = 10000, split = 0.7, success1 = 0.3, success2 = 0.5)
 }

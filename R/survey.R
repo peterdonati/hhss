@@ -1,7 +1,3 @@
-#####################################################################
-# SURVEY FUNCTIONS (census, mand, simple) DOCUMENTATION AND HELPERS #
-#####################################################################
-
 # Documentation ================================================================
 #' Survey Simulations
 #'
@@ -50,11 +46,11 @@
 #' @param bias Scales the rate(s) of response for successful hunters, relative
 #'     to unsuccessful hunters. Introduces response bias for any value not
 #'     equal to 1.
-#' @param fus Logical. If \code{TRUE}, a single follow up survey will be
+#' @param fol Logical. If \code{TRUE}, a single follow up survey will be
 #'     simulated.
-#' @param fus_scale Scales initial response probabilities,
+#' @param fol_scale Scales initial response probabilities,
 #'     creating new probabilities of response for follow up surveys.
-#' @param fus_sample Probability that a non-respondent is sampled for a follow
+#' @param fol_sample Probability that a non-respondent is sampled for a follow
 #'     up survey.
 #' @param times The number of times to repeat the simulation.
 #'
@@ -80,13 +76,13 @@
 #' to an initial survey if they were successful.
 #' \item \code{init_resp}: 1 if the hunter responded to the initial survey,
 #' 0 otherwise.
-#' \item \code{fus_uns_resp_rate}: The probability at which a hunter will
+#' \item \code{fol_uns_resp_rate}: The probability at which a hunter will
 #' respond to a follow up survey if they were unsuccessful.
-#' \item \code{fus_suc_resp_rate}: The probability at which a hunter will
+#' \item \code{fol_suc_resp_rate}: The probability at which a hunter will
 #' respond to a follow up survey if they were successful.
-#' \item \code{fus_sample}: 1 if the hunter was asked to participate in a
+#' \item \code{fol_sample}: 1 if the hunter was asked to participate in a
 #' follow up survey, 0 otherwise.
-#' \item \code{fus_resp}: 1 if they responded to the follow up survey,
+#' \item \code{fol_resp}: 1 if they responded to the follow up survey,
 #' 0 otherwise.
 #' }
 #'
@@ -109,13 +105,386 @@
 #'   my_pop,
 #'   resp = seq(0.3, 0.8, 0.1),
 #'   bias = c(1, 1.1, 1.2),
-#'   fus = TRUE,
-#'   fus_scale = 0.7,
-#'   fus_sample = 0.4,
+#'   fol = TRUE,
+#'   fol_scale = 0.7,
+#'   fol_sample = 0.4,
 #'   times = 10
 #'   )
 #'
+
+# census() ========================================================================
+#' @rdname survey
+#' @export
+
+census <- function(x, resp, bias, fol = FALSE,
+                   fol_sample = NULL, fol_scale = NULL, times = 1) {
+
+  #Argument checks ----
+  if (!inherits(x, "hhss_pop")){
+    stop ("'x' not of class 'hhss_pop'")
+  }
+
+  if (times %% 1 != 0){
+    stop ("'times' must be a whole number.", call. = FALSE)
+  }
+
+  argcheck <- c(fol_sample, resp)
+  if (any(argcheck > 1) || any(argcheck <= 0)){
+    stop (
+      "'resp' and 'fol_sample' must be proportions and > 0.",
+      call. = FALSE
+    )
+  }
+
+  if (fol && (missing(fol_scale) || missing(fol_sample))){
+    stop (
+      "If 'fol' = TRUE, 'fol_scale' and 'fol_sample' arguments
+      must be defined.",
+      call. = FALSE
+    )
+  }
+
+  if (!fol && (!missing(fol_scale) || !missing(fol_sample))){
+    stop ("'fol_scale' and/or 'fol_sample' are defined, but 'fol' = FALSE.",
+          call. = FALSE)
+  }
+
+  if (!missing(fol_scale) && fol_scale > 1){
+    message(
+      "fol_scale > 1; Hunters more likely to respond to follow up
+        than to initially report"
+    )
+  }
+
+  if (any(bias < 1)) {
+    message(
+      "At least 1 value of 'bias' < 1; successful hunters will be
+      less likely to respond to survey than unsuccessful hunters."
+    )
+  }
+
+  # Actual function ----
+  x <- as.data.frame(x)
+  x <- pop_summarizer(x)
+
+  single_sim_c <- function(.r, .b, dat){
+
+    init_suc_rate <- changeto1(.r * .b) # scale for successful hunter resp bias
+    init_yes <- rbinom(1, dat$N_success, init_suc_rate) # All can respond
+
+    init_no <- rbinom(1, dat$N_unsuccess, .r)
+
+    ss_out <- data.frame(
+      N = dat$N,
+      true_harvest = dat$N_success,
+      resp_bias = .b,
+      init_uns_rate = .r,
+      init_suc_rate,
+      init_resp = init_yes + init_no,
+      init_yes,
+      init_no
+    )
+
+    if (fol) {
+
+      fol_samp_suc <- rbinom(1, dat$N_success - ss_out$init_yes, fol_sample)
+      fol_suc_rate <- changeto1(init_suc_rate * fol_scale)
+      fol_yes <- rbinom(1, fol_samp_suc, fol_suc_rate)
+
+      # No need to remove initial respondents from unsuccessful portion in
+      # follow up sample, because no initial respondents were unsuccessful:
+      fol_samp_uns <- rbinom(1, dat$N_unsuccess - ss_out$init_no, fol_sample)
+      fol_uns_rate <- changeto1(.r * fol_scale)
+      fol_no <- rbinom(1, fol_samp_uns, fol_uns_rate)
+
+      ss_out <- dplyr::mutate(
+        ss_out,
+        fol_sampled = sum(fol_samp_suc, fol_samp_uns),
+        fol_uns_rate,
+        fol_suc_rate,
+        fol_resp = sum(fol_yes, fol_no),
+        fol_yes,
+        fol_no
+      )
+    }
+
+    return(ss_out)
+  }
+
+  out <- vector(mode = "list", length = times)
+  for(i in 1:times){
+    out[[i]] <- multi_sim(resp, bias, single_sim_c, x)
+  }
+
+  names(out) <- paste("Sim", 1:length(out))
+  out <- survsim_census_class(out)
+  return(out)
+}
+
+
+# mand() =======================================================================
+#' @rdname survey
+#' @export
+
+mand <- function(x, resp, fol = FALSE, bias = NULL,
+                 fol_sample = NULL, fol_scale = NULL, times = 1){
+
+  # Argument checks ----
+  if (!inherits(x, "hhss_pop")){
+    stop ("'x' not of class 'hhss_pop'")
+  }
+
+  if (times %% 1 != 0){
+    stop ("'times' must be a whole number.", call. = FALSE)
+  }
+
+  argcheck <- c(resp, fol_sample)
+  if (any(argcheck > 1) || any(argcheck <= 0)) {
+    stop("'resp' and/or 'fol_sample' must be proportions and > 0.",
+         call. = FALSE)
+  }
+
+  if (fol){
+    if (missing(fol_scale)) {
+      stop("If 'fol' = TRUE, 'fol_scale' argument must be defined.",
+           call. = FALSE)
+    }
+    if (missing(fol_sample)) {
+      stop("If 'fol' = TRUE, 'fol_sample' argument must be defined.",
+           call. = FALSE)
+    }
+    if (missing(bias)) {
+      stop("If 'fol' = TRUE, 'bias' argument must be defined.",
+           call. = FALSE)
+    }
+  }
+
+  if (!fol){
+    if (!missing(fol_scale)) {
+      stop("'fol_scale' is defined, but 'fol' = FALSE.", call. = FALSE)
+    }
+    if (!missing(fol_sample)) {
+      stop("'fol_sample' is defined, but 'fol' = FALSE.", call. = FALSE)
+    }
+    if (!missing(bias)) {
+      stop(
+        "'bias' is defined, but 'fol' = FALSE.
+        Response bias is only simulated in follow up survey.",
+        call. = FALSE
+      )
+    }
+  }
+
+  if (!missing(fol_scale) && fol_scale > 1) {
+    message(
+      "fol_scale > 1; Hunters more likely to respond to follow up
+        than to initial survey."
+    )
+  }
+
+  # Actual function ----
+  x <- as.data.frame(x)
+  x <- pop_summarizer(x)
+
+  if (!fol){
+
+    single_sim_m1 <- function(.r, dat){
+      ss_out_nf <- data.frame(
+        N = dat$N,
+        true_harvest = dat$N_success,
+        init_rate = .r,
+        init_resp = rbinom(1, dat$N_success, .r) # Only successfuls report.
+      )
+
+      return(ss_out_nf)
+    }
+
+    # This scenario needs its own multi_sim function because there is no
+    # reporting bias:
+    multi_sim_m1 <- function(){
+      ms_out <- purrr::map(resp, single_sim_m1, x)
+
+      names(ms_out) <- paste0("resp ", resp, "; bias NA")
+      return(ms_out)
+    }
+
+    out <- vector(mode = "list", length = times)
+    for(i in 1:times){
+      out[[i]] <- multi_sim_m1()
+    }
+
+    names(out) <- paste("Sim", 1:length(out))
+    out <- survsim_mand_class(out)
+
+    return(out)
+
+  } else if (fol) {
+
+    single_sim_m2 <- function(.r, .b, dat){
+      ss_out_fol <- data.frame(
+        N = dat$N,
+        true_harvest = dat$N_success,
+        resp_bias = .b,
+        init_rate = .r,
+        init_resp = rbinom(1, dat$N_success, .r) # Only harvests report
+      )
+
+      # Remove those who already responded initially from fol_samp_suc:
+      fol_samp_suc <- rbinom(
+        1, dat$N_success - ss_out_fol$init_resp, fol_sample
+      )
+      fol_suc_rate <- changeto1(.r * .b * fol_scale)
+      fol_yes <- rbinom(1, fol_samp_suc, fol_suc_rate)
+
+      # No need to remove initial respondents from unsuccessful portion in
+      # follow up sample, because no initial respondents were unsuccessful:
+      fol_samp_uns <- rbinom(1, dat$N_unsuccess, fol_sample)
+      fol_uns_rate <- changeto1(.r * fol_scale)
+      fol_no <- rbinom(1, fol_samp_uns, fol_uns_rate)
+
+      ss_out_fol <- dplyr::mutate(
+        ss_out_fol,
+        fol_sampled = sum(fol_samp_suc, fol_samp_uns),
+        fol_resp = sum(fol_yes, fol_no),
+        fol_yes,
+        fol_no,
+        fol_suc_rate,
+        fol_uns_rate
+      )
+
+      return(ss_out_fol)
+    }
+
+    out <- vector(mode = "list", length = times)
+    for(i in 1:times){
+      out[[i]] <- multi_sim(resp, bias, single_sim_m2, x)
+    }
+    names(out) <- paste("Sim", 1:length(out))
+    out <- survsim_mand_class(out)
+    return(out)
+  }
+}
+
+# simple() =====================================================================
+#' @rdname survey
+#' @export
+
+simple <- function(x, sample, resp, bias,
+                   fol = FALSE, fol_scale = NULL, times = 1) {
+
+  # Argument checks ----
+  if (!inherits(x, "hhss_pop")){
+    stop ("'x' not of class 'hhss_pop'")
+  }
+
+  if (times %% 1 != 0){
+    stop ("'times' must be a whole number.", call. = FALSE)
+  }
+
+  argcheck <- c(sample, resp)
+
+  if (any(argcheck > 1) || any(argcheck <= 0)) {
+    stop ("'sample' and 'resp' must only contain probabilities and be > 0.",
+          call. = FALSE
+    )
+  }
+
+  if (fol && missing(fol_scale)) {
+    stop ("If 'fol' = TRUE, 'fol_scale' argument must be defined.",
+          call. = FALSE)
+  }
+
+  if (!fol && !missing(fol_scale)) {
+    stop ("'fol_scale' is defined, but 'fol' = FALSE.",
+          call. = FALSE)
+  }
+
+  if (!missing(fol_scale) && fol_scale > 1) {
+    message(
+      "fol_scale > 1; Hunters more likely to respond to follow up
+        than to initial survey."
+    )
+  }
+
+  if (any(bias < 1)) {
+    message(
+      "At least 1 value of 'bias' < 1; successful hunters will be less
+      likely to respond to survey than unsuccessful hunters."
+    )
+  }
+
+  # Actual function ----
+  x <- as.data.frame(x)
+  x <- pop_summarizer(x)
+
+  single_sim_s <- function(.r, .b, dat){
+
+    init_samp_suc <- rbinom(1, dat$N_success, sample)
+    init_suc_rate <- changeto1(.r * .b) # scale for successful hunter resp bias
+    init_yes <- rbinom(1, init_samp_suc, init_suc_rate)
+
+    init_samp_uns <- rbinom(1, dat$N_unsuccess, sample)
+    init_no <- rbinom(1, init_samp_uns, .r) # unsuccessful hunters use base resp
+
+    ss_out <- data.frame(
+      N = dat$N,
+      true_harvest = dat$N_success,
+      resp_bias = .b,
+      init_uns_rate = .r,
+      init_suc_rate,
+      init_sample = init_samp_suc + init_samp_uns,
+      init_resp = init_yes + init_no,
+      init_yes,
+      init_no
+    )
+
+    if (fol) {
+
+      fol_suc_rate <- changeto1(init_suc_rate * fol_scale)
+      # Follow up with EVERY (successful) non-respondent:
+      fol_yes <- rbinom(1, init_samp_suc - init_yes, fol_suc_rate)
+
+      fol_uns_rate <- changeto1(.r * fol_scale)
+      fol_no <- rbinom(1, init_samp_uns - init_no, fol_uns_rate)
+
+      ss_out <- dplyr::mutate(
+        ss_out,
+        fol_uns_rate = fol_uns_rate,
+        fol_suc_rate = fol_suc_rate,
+        fol_resp = fol_yes + fol_no,
+        fol_yes,
+        fol_no
+      )
+    }
+
+    return(ss_out)
+  }
+
+  out <- vector(mode = "list", length = times)
+  for(i in 1:times){
+    out[[i]] <- multi_sim(resp, bias, single_sim_s, x)
+  }
+
+  names(out) <- paste("Sim", 1:length(out))
+  out <- survsim_simple_class(out)
+  return(out)
+}
+
 # Helpers ======================================================================
+
+# pop_summarizer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Summarizes populations at beginning of each function to minimize memory usage
+# during repetitions.
+
+pop_summarizer <- function(pop){
+  out <- data.frame(
+    N = nrow(pop),
+    N_success = sum(pop$harvest),
+    N_unsuccess = nrow(pop) - sum(pop$harvest)
+  )
+
+  return(out)
+}
 
 # changeto1() ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # To silently change response probabilities to 1 if scaling arguments scale it
@@ -133,14 +502,29 @@ changeto1 <- function(x) {
 # response rate and bias.
 
 multi_sim <- function(r, b, f, x){
-  # Find all unique pairings of resp and bias:
+
   combos <- tidyr::crossing(r, b)
   resp <- combos$r
   bias <- combos$b
 
-  # r = resp rate, b = bias, f = a single_sim_* function, x = population data.
   sim_list <- purrr::map2(resp, bias, f, x)
 
   names(sim_list) <- paste0("resp ", resp, "; bias ", bias)
   return(sim_list)
+}
+
+# survsim_* classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+survsim_mand_class <- function(x){
+  class(x) <- "survsim_mand"
+  return(x)
+}
+
+survsim_simple_class <- function(x){
+  class(x) <- "survsim_simple"
+  return(x)
+}
+
+survsim_census_class <- function(x){
+  class(x) <- "survsim_census"
+  return(x)
 }
