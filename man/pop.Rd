@@ -17,7 +17,8 @@ The remaining proportion, i.e. (\code{1 - split}), will be in group 2.}
 \item{success2}{Probability of a hunter in group 2 to harvest}
 }
 \value{
-A data frame of class \code{hhss_pop} that contains the variables:
+A data frame of class \code{hhss_pop} where each observation
+represents a hunter. It contains the variables:
 \itemize{
 \item \code{N}: The population size.
 \item \code{true_harvest}: The sum of harvests from the population.

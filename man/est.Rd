@@ -7,22 +7,22 @@
 est(simdat)
 }
 \arguments{
-\item{simdat}{Survey data. Must be an object
-created from either \code{census()}, \code{mand()}, or \code{simple()}.}
+\item{simdat}{Survey simulation data. Must be an object
+created from one of the three \code{\link{survey}} functions.}
 }
 \value{
-A tibble, containing the following variables:
+A data frame, containing the following variables:
 \itemize{
-\item \code{pop_size}: Hunter population size.
+\item \code{N}: Hunter population size.
 \item \code{resp_bias}: Bias of successful hunters to report,
-relative to unsuccessful hunters.
-\item \code{resp_rate}: Underlying response probabilities of hunters, if
-there was no bias.
-\item \code{true_hvst}: True harvest of population.
+    relative to unsuccessful hunters.
+\item \code{resp_rate}: Underlying response probability, before any
+    scaling/bias.
 \item \code{mean_n}: Average total responses. Includes both initial
-and follow-up responses.
+    and follow-up responses.
+\item \code{true_harvest}: True harvest of population.
 \item \code{min_hvst_est}: Minimum harvest estimate of the survey
-repetitions at the response bias and response rate shown for that row.
+    repetitions (if any) at the response bias and response rate shown for that row.
 \item \code{max_hvst_est}: Maximum harvest estimate.
 \item \code{mean_hvst_est}: Average harvest estimate.
 \item \code{mean_SE}: Average standard error across repetitions.
@@ -35,38 +35,32 @@ A generic function for estimating total harvest from objects
 created by the \code{\link{survey}} simulation functions.
 }
 \details{
-All estimates use \code{survey::svydesign()} and
-\code{survey::svytotal()} to estimate total harvest.\cr
-
-Estimates are
-calculated a bit different when a follow up survey is simulated in the
-data. In that case, two separate estimates are made using
-\code{survey::svytotal()}. One estimate from the respondents to
-the initial survey and the other from respondents
-to follow up surveys.
+In simulations with follow up surveys, two separate estimates are made.
+One estimate from the respondents to
+the initial survey and the other from respondents to follow up surveys.
 In the case of estimates from \code{simple()} outputs,
-the proportion of (hunters initially responding / hunters sampled) is
-used to scale the initial estimate (i.e. the prop. of respondents is
-assumed to make up the same
+the proportion of \code{init_resp/init_sample} is
+used to scale the initial estimate (i.e. the prop. of total respondents
+to total sampled is assumed to make up the same
 prop. of the entire population). Then, the follow up respondents are assumed
 to be representative of the remaining proportion of the entire population.
-This proportion is used to scale the follow up estimate.
+This remaining proportion is used to scale the follow up estimate.
 Both scaled estimates are then added together to create the combined
-estimate.\cr
+total population estimate.\cr
 
 This is similar to estimates made from \code{census()} outputs,
-except in that case, the proportion of initial respondents \emph{is} the
-proportion of the population that responded.\cr
+except in that case the initial scaling proportion is \code{init_resp/N}.
 
 Estimates for \code{mand()} outputs assume 100\% reporting by successful
 hunters for initial reports if there is no follow up. If a follow up survey
 was simulated, it creates a harvest estimate from the follow up sample to
-estimate total harvest for the non-reporting portion of the population, and
-then adds that to the sum of initially reported harvests.\cr\cr
+estimate total harvest for \emph{the non-reporting portion of
+the population only}, and then adds that to the sum of
+initially reported harvests.\cr\cr
 }
 \examples{
 # First, make a population:
-my_pop <- pop(N = 10000, split = 0.7, success1 = 0.25, success0 = 0.32)
+my_pop <- pop(N = 10000, split = 0.7, success1 = 0.25, success2 = 0.32)
 
 # Then simulate a survey for that population:
 my_pop_simple_followup <- simple(
@@ -74,8 +68,8 @@ my_pop_simple_followup <- simple(
   sample = 0.5,
   resp = c(0.4, 0.6),
   bias = seq(1, 1.3, 0.1),
-  fus = TRUE,
-  fus_scale = 0.7,
+  fol = TRUE,
+  fol_scale = 0.7,
   times = 10
 )
 
@@ -85,6 +79,4 @@ est(my_pop_simple_followup)
 \seealso{
 \code{\link{pop}} and \code{\link{survey}} for how to create the data to be
 input to this function.\cr\cr
-\code{\link[survey]{svydesign}}, \code{\link[survey]{surveysummary}} for
-details on how estimates are calculated.
 }

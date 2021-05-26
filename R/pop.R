@@ -13,7 +13,8 @@
 #' @param success1 Probability of a hunter in group 1 to harvest
 #' @param success2 Probability of a hunter in group 2 to harvest
 #'
-#' @return A data frame of class \code{hhss_pop} that contains the variables:
+#' @return A data frame of class \code{hhss_pop} where each observation
+#' represents a hunter. It contains the variables:
 #' \itemize{
 #' \item \code{N}: The population size.
 #' \item \code{true_harvest}: The sum of harvests from the population.
