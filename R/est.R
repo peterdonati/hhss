@@ -5,51 +5,44 @@
 #' @description A generic function for estimating total harvest from objects
 #' created by the \code{\link{survey}} simulation functions.
 #'
-#' @param simdat Survey data. Must be an object
-#' created from either \code{mand()}, \code{simple()}, or \code{vol()}.
-#'
+#' @param simdat Survey simulation data. Must be an object
+#' created from one of the three \code{\link{survey}} functions.
 #' @details
-#' All estimates use \code{survey::svydesign()} and
-#' \code{survey::svytotal()} to estimate total harvest.\cr
-#'
-#' Estimates are
-#' calculated a bit different when a follow up survey is simulated in the
-#' data. In that case, two separate estimates are made using
-#' \code{survey::svytotal()}. One estimate from the respondents to
-#' the initial survey and the other from respondents
-#' to follow up surveys.
+#' In simulations with follow up surveys, two separate estimates are made.
+#' One estimate from the respondents to
+#' the initial survey and the other from respondents to follow up surveys.
 #' In the case of estimates from \code{simple()} outputs,
-#' the proportion of (hunters initially responding / hunters sampled) is
-#' used to scale the initial estimate (i.e. the prop. of respondents is
-#' assumed to make up the same
+#' the proportion of \code{init_resp/init_sample} is
+#' used to scale the initial estimate (i.e. the prop. of total respondents
+#' to total sampled is assumed to make up the same
 #' prop. of the entire population). Then, the follow up respondents are assumed
 #' to be representative of the remaining proportion of the entire population.
-#' This proportion is used to scale the follow up estimate.
+#' This remaining proportion is used to scale the follow up estimate.
 #' Both scaled estimates are then added together to create the combined
-#' estimate.\cr
+#' total population estimate.\cr
 #'
-#' This is similar to estimates made from \code{vol()} outputs,
-#' except in that case, the proportion of initial respondents \emph{is} the
-#' proportion of the population that responded.\cr
+#' This is similar to estimates made from \code{census()} outputs,
+#' except in that case the initial scaling proportion is \code{init_resp/N}.
 #'
 #' Estimates for \code{mand()} outputs assume 100\% reporting by successful
 #' hunters for initial reports if there is no follow up. If a follow up survey
 #' was simulated, it creates a harvest estimate from the follow up sample to
-#' estimate total harvest for the non-reporting portion of the population, and
-#' then adds that to the sum of initially reported harvests.\cr\cr
+#' estimate total harvest for \emph{the non-reporting portion of
+#' the population only}, and then adds that to the sum of
+#' initially reported harvests.\cr\cr
 #'
-#' @return A tibble, containing the following variables:
+#' @return A data frame, containing the following variables:
 #' \itemize{
-#' \item \code{pop_size}: Hunter population size.
+#' \item \code{N}: Hunter population size.
 #' \item \code{resp_bias}: Bias of successful hunters to report,
-#' relative to unsuccessful hunters.
-#' \item \code{resp_rate}: Underlying response probabilities of hunters, if
-#' there was no bias.
-#' \item \code{true_hvst}: True harvest of population.
+#'     relative to unsuccessful hunters.
+#' \item \code{resp_rate}: Underlying response probability, before any
+#'     scaling/bias.
 #' \item \code{mean_n}: Average total responses. Includes both initial
-#' and follow-up responses.
+#'     and follow-up responses.
+#' \item \code{true_harvest}: True harvest of population.
 #' \item \code{min_hvst_est}: Minimum harvest estimate of the survey
-#' repetitions at the response bias and response rate shown for that row.
+#'     repetitions (if any) at the response bias and response rate shown for that row.
 #' \item \code{max_hvst_est}: Maximum harvest estimate.
 #' \item \code{mean_hvst_est}: Average harvest estimate.
 #' \item \code{mean_SE}: Average standard error across repetitions.
@@ -60,12 +53,10 @@
 #' @seealso
 #' \code{\link{pop}} and \code{\link{survey}} for how to create the data to be
 #' input to this function.\cr\cr
-#' \code{\link[survey]{svydesign}}, \code{\link[survey]{surveysummary}} for
-#' details on how estimates are calculated.
 #'
 #' @examples
 #' # First, make a population:
-#' my_pop <- pop(N = 10000, split = 0.7, success1 = 0.25, success0 = 0.32)
+#' my_pop <- pop(N = 10000, split = 0.7, success1 = 0.25, success2 = 0.32)
 #'
 #' # Then simulate a survey for that population:
 #' my_pop_simple_followup <- simple(
@@ -73,8 +64,8 @@
 #'   sample = 0.5,
 #'   resp = c(0.4, 0.6),
 #'   bias = seq(1, 1.3, 0.1),
-#'   fus = TRUE,
-#'   fus_scale = 0.7,
+#'   fol = TRUE,
+#'   fol_scale = 0.7,
 #'   times = 10
 #' )
 #'
@@ -88,76 +79,177 @@ est <- function(simdat){
   UseMethod("est")
 }
 
+# census method ================================================================
+#' @export
+est.survsim_census <- function(simdat){
+
+  simdat <- purrr::flatten(simdat)
+  N <- extract_and_check(simdat, "N")
+  thvst <- extract_and_check(simdat, "true_harvest")
+
+  est_census <- function(pop_dat){
+
+    init_ones <- rep(1, pop_dat$init_yes)
+    init_zeroes <- rep(0, pop_dat$init_no)
+    init_responses <- c(init_ones, init_zeroes)
+
+    init_n <- pop_dat$init_resp
+    init_weight <- N / init_n
+
+    init_SE <- (sd(init_responses) / sqrt(init_n)) * init_weight * init_n
+    init_SE <- init_SE * sqrt((N - init_n) / (N - 1)) # fpc
+
+    init_est <- as.integer(pop_dat$init_yes * init_weight) # shave decimals
+
+    follow_check <- is_follow(simdat)
+    if (follow_check == length(simdat)){
+
+      if (pop_dat$fol_resp != 0) {
+
+        fol_ones <- rep(1, pop_dat$fol_yes)
+        fol_zeroes <- rep(0, pop_dat$fol_no)
+        fol_responses <- c(fol_ones, fol_zeroes)
+
+        fol_n <- pop_dat$fol_resp
+        fol_weight <- N / fol_n
+
+        fol_SE <- (sd(fol_responses) / sqrt(fol_n)) * fol_weight * fol_n
+        fol_SE <-  fol_SE * sqrt((N - fol_n) / (N - 1)) # fpc
+
+        fol_est <- as.integer(pop_dat$fol_yes * fol_weight)
+
+        # No init sample, so full proportion with N:
+        init_prop <- init_n / N
+        # Assume follow up represents the remainder:
+        fol_prop <- 1 - init_prop
+
+        combined_est <- (init_est * init_prop) + (fol_est * fol_prop)
+        combined_est <- as.integer(combined_est)
+        combined_SE <- (init_SE * init_prop) + (fol_SE * fol_prop)
+
+        estout <- data.frame(
+          resp_rate = pop_dat$init_uns_rate,
+          resp_bias = pop_dat$resp_bias,
+          n = init_n + fol_n,
+          est_harvest = combined_est,
+          est_SE = combined_SE,
+          ARE = abs((combined_est - thvst) / thvst),
+          sqer = ((combined_est - thvst)^2)
+        )
+      } else if (pop_dat$fol_resp == 0) {
+        estout <- data.frame(
+          resp_rate = pop_dat$init_uns_rate,
+          resp_bias = pop_dat$resp_bias,
+          n = init_n,
+          est_harvest = init_est,
+          est_SE = init_SE,
+          ARE = abs((init_est - thvst) / thvst),
+          sqer = ((init_est - thvst)^2)
+        )
+      } else {
+        stop("Follow up estimate error")
+      }
+
+    } else if (follow_check == 0) {
+      estout <- data.frame(
+        resp_rate = pop_dat$init_uns_rate,
+        resp_bias = pop_dat$resp_bias,
+        n = init_n,
+        est_harvest = init_est,
+        est_SE = init_SE,
+        ARE = abs((init_est - thvst) / thvst),
+        sqer = ((init_est - thvst)^2)
+      )
+    } else {
+      stop("Error with 'simdat' structure.")
+    }
+
+    return(estout)
+  }
+
+  # Use map() to pull individual simulations and make individual estimates:
+  ests <- purrr::map_dfr(simdat, est_census)
+  out <- output_summarizer(ests, N, thvst)
+  return(out)
+}
+
 # mand method ==================================================================
 #' @export
 est.survsim_mand <- function(simdat){
 
   simdat <- purrr::flatten(simdat)
-  N <- simdat[[1]]$pop_size[[1]]
-  thvst <- simdat[[1]]$true_harvest[[1]]
+  N <- extract_and_check(simdat, "N")
+  thvst <- extract_and_check(simdat, "true_harvest")
 
-  if ("fus_resp" %in% names(simdat[[1]])){
-    est_mand <- function(pop_dat){
+  est_mand <- function(pop_dat){
 
-      # Initial estimate will just be sum of reports:
-      init_est <- sum(pop_dat$init_resp)
+    # Only successful hunters respond:
+    init_est <- pop_dat$init_resp
 
-      # Separate estimate of non-respondents:
-      fus_resp_only <- dplyr::filter(pop_dat, fus_resp == 1)
+    follow_check <- is_follow(simdat)
+    if (follow_check == length(simdat)){
+      if (pop_dat$fol_resp != 0) {
 
-      fus_resp_only <- dplyr::mutate(
-        fus_resp_only,
-        fpc = N - sum(pop_dat$init_resp)
-      )
+        fol_ones <- rep(1, pop_dat$fol_yes)
+        fol_zeroes <- rep(0, pop_dat$fol_no)
+        fol_responses <- c(fol_ones, fol_zeroes)
 
-      fus_design <- survey::svydesign(
-        ids = ~1,
-        probs = nrow(fus_resp_only) / (N - sum(pop_dat$init_resp)),
-        data = fus_resp_only,
-        fpc = ~fpc
-      )
+        fol_n <- pop_dat$fol_resp
+        # N for follow up is whoever didn't report initially because the
+        # estimate is for the nonresponding portion of the population only!!:
+        fol_N <- pop_dat$N - pop_dat$init_resp
+        fol_weight <- fol_N / fol_n
 
-      fus_est <- survey::svytotal(~harvest, fus_design)
+        fol_SE <- (sd(fol_responses) / sqrt(fol_n)) * fol_weight * fol_n
+        fol_SE <- fol_SE * sqrt((fol_N - fol_n) / (fol_N - 1)) # fpc
 
-      combined_est <- init_est + fus_est
+        fol_est <- as.integer(pop_dat$fol_yes * fol_weight) # shave decimals
 
-      estout <- tibble::tibble(
-        resp_rate = pop_dat$resp_rate[[1]],
-        resp_bias = pop_dat$resp_bias[[1]],
-        true_harvest = thvst,
-        n = sum(init_est, nrow(fus_resp_only)),
-        est_harvest = as.vector(combined_est),
-        est_SE = as.vector(survey::SE(fus_est)), # Assume no error for init.
-        ARE = abs((est_harvest - true_harvest) / true_harvest),
-        sqer = ((est_harvest - true_harvest)^2)
-      )
-      return(estout)
-    }
-  } else {
+        combined_est <- init_est + fol_est
 
-    # If there was not a follow up, simply report the sum of init:
-    est_mand <- function(pop_dat){
+        estout <- data.frame(
+          resp_rate = pop_dat$init_rate,
+          resp_bias = pop_dat$resp_bias,
+          n = sum(pop_dat$init_resp, pop_dat$fol_resp),
+          est_harvest = combined_est,
+          est_SE = fol_SE, # Assume no error for init.
+          ARE = abs((combined_est - thvst) / thvst),
+          sqer = ((combined_est - thvst)^2)
+        )
+      } else if (pop_dat$fol_resp == 0) {
+        estout <- data.frame(
+          resp_rate = pop_dat$init_rate,
+          resp_bias = NA_real_,
+          n = init_est,
+          est_harvest = init_est,
+          est_SE = 0L, # Because assuming 100% reporting
+          ARE = abs((init_est - thvst) / thvst),
+          sqer = ((init_est - thvst)^2)
+        )
+      } else {stop("Follow up estimate error")}
 
-      estout <- tibble::tibble(
-        resp_rate = pop_dat$resp_rate[[1]],
+    } else if (follow_check == 0) {
+      estout <- data.frame(
+        resp_rate = pop_dat$init_rate,
         resp_bias = NA_real_,
-        true_harvest = pop_dat$true_harvest[[1]],
-        n = sum(pop_dat$init_resp, na.rm = TRUE),
-        est_harvest = n,
+        n = init_est,
+        est_harvest = init_est,
         est_SE = 0L, # Because assuming 100% reporting
-        ARE = abs((est_harvest - true_harvest) / true_harvest),
-        sqer = ((est_harvest - true_harvest)^2)
+        ARE = abs((init_est - thvst) / thvst),
+        sqer = ((init_est - thvst)^2)
       )
-
-      return(estout)
+    } else {
+      stop("Error with 'simdat' structure.")
     }
+
+    return(estout)
   }
 
   # Use map() to pull individual dataframes from simdat list
   # and make individual estimates:
   ests <- purrr::map_dfr(simdat, est_mand)
 
-  out <- output_summarizer(ests = ests, N = N)
+  out <- output_summarizer(ests, N, thvst)
   out <- as.data.frame(out)
   return(out)
 }
@@ -167,193 +259,147 @@ est.survsim_mand <- function(simdat){
 est.survsim_simple <- function(simdat){
 
   simdat <- purrr::flatten(simdat)
-  N <- simdat[[1]]$pop_size[[1]]
-  thvst <- simdat[[1]]$true_harvest[[1]]
+  N <- extract_and_check(simdat, "N")
+  thvst <- extract_and_check(simdat, "true_harvest")
 
   est_simp <- function(pop_dat){
-    init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
-    init_design <- survey::svydesign(
-      ids = ~1,
-      probs = nrow(init_resp_only) / N,
-      data = init_resp_only,
-      fpc = ~pop_size
-    )
-    init_est <- survey::svytotal(~harvest, init_design)
 
-    if ("fus_resp" %in% names(pop_dat)){
+    init_ones <- rep(1, pop_dat$init_yes)
+    init_zeroes <- rep(0, pop_dat$init_no)
+    init_responses <- c(init_ones, init_zeroes)
 
-      # If resp_rate is not less than 1, then there was nobody to follow
-      # up with, so ignore this next step:
-      if (all(pop_dat$uns_resp_rate < 1) | all(pop_dat$suc_resp_rate < 1)){
+    init_n <- pop_dat$init_resp
+    init_weight <- N / init_n
 
-        fus_resp_only <- dplyr::filter(pop_dat, fus_resp == 1)
+    init_SE <- (sd(init_responses) / sqrt(init_n)) * init_weight * init_n
+    init_SE <- init_SE * sqrt((N - init_n) / (N - 1)) # fpc
 
-        fus_design <- survey::svydesign(
-          ids = ~1,
-          probs = nrow(fus_resp_only) / N,
-          data = fus_resp_only,
-          fpc = ~pop_size
-        )
+    init_est <- as.integer(pop_dat$init_yes * init_weight) # shave decimals
 
-        fus_est <- survey::svytotal(~harvest, fus_design)
+    follow_check <- is_follow(simdat)
+    if (follow_check == length(simdat)){
+      if (pop_dat$fol_resp != 0) {
+
+        fol_ones <- rep(1, pop_dat$fol_yes)
+        fol_zeroes <- rep(0, pop_dat$fol_no)
+        fol_responses <- c(fol_ones, fol_zeroes)
+
+        fol_n <- pop_dat$fol_resp
+        fol_weight <- N / fol_n
+
+        fol_SE <- (sd(fol_responses) / sqrt(fol_n)) * fol_weight * fol_n
+        fol_SE <- fol_SE * sqrt((N - fol_n) / (N - 1)) # fpc
+
+        fol_est <- as.integer(pop_dat$fol_yes * fol_weight)
 
         # assume proportion of respondents to initial sample represents the
         # same proportion of entire population:
-        init_prop <- sum(pop_dat$init_resp, na.rm = TRUE) /
-          sum(pop_dat$sample)
-        # assume fus respondents represent rest of the pop:
-        fus_prop  <- 1 - init_prop
+        init_prop <- pop_dat$init_resp / pop_dat$init_sample
+        # assume fol respondents represent rest of the pop:
+        fol_prop  <- 1 - init_prop
 
-        combined_est <- (init_est * init_prop) + (fus_est * fus_prop)
+        combined_est <- (init_est * init_prop) + (fol_est * fol_prop)
+        combined_est <- as.integer(combined_est)
+        combined_SE <- (init_SE * init_prop) + (fol_SE * fol_prop)
 
-        combined_SE <- (init_prop * survey::SE(init_est)) +
-          (fus_prop * survey::SE(fus_est))
-
-        estout <- tibble::tibble(
-          resp_rate = pop_dat$uns_resp_rate[[1]],
-          resp_bias = pop_dat$resp_bias[[1]],
-          true_harvest = thvst,
-          n = sum(pop_dat$init_resp, pop_dat$fus_resp, na.rm = TRUE),
-          est_harvest = as.vector(combined_est),
-          est_SE = as.vector(combined_SE),
-          ARE = abs((est_harvest - true_harvest) / true_harvest),
-          sqer = ((est_harvest - true_harvest)^2)
+        estout <- data.frame(
+          resp_rate = pop_dat$init_uns_rate,
+          resp_bias = pop_dat$resp_bias,
+          n = init_n + fol_n,
+          est_harvest = combined_est,
+          est_SE = combined_SE,
+          ARE = abs((combined_est - thvst) / thvst),
+          sqer = ((combined_est - thvst)^2)
         )
-
-      } else if (all(pop_dat$uns_resp_rate == 1) &
-                 all(pop_dat$suc_resp_rate == 1)){
-        # If follow up survey was planned, but everyone responded initially:
-        estout <- tibble::tibble(
-          resp_rate = pop_dat$uns_resp_rate[[1]],
-          resp_bias = pop_dat$resp_bias[[1]],
-          true_harvest = thvst,
-          n = sum(pop_dat$init_resp, na.rm = T),
-          est_harvest = as.vector(init_est),
-          est_SE = as.vector(survey::SE(init_est)),
-          ARE = abs((est_harvest - true_harvest) / true_harvest),
-          sqer = ((est_harvest - true_harvest)^2)
+      } else if (pop_dat$fol_resp == 0) {
+        estout <- data.frame(
+          resp_rate = pop_dat$init_uns_rate,
+          resp_bias = pop_dat$resp_bias,
+          n = init_n,
+          est_harvest = init_est,
+          est_SE = init_SE,
+          ARE = abs((init_est - thvst) / thvst),
+          sqer = ((init_est - thvst)^2)
         )
-
       } else {
-        stop ("Conflicting response rates in a single population",
-              call. = FALSE)
+        stop("Follow up estimate error")
       }
-
-    } else {
-      # If there was no follow up survey simulated:
-      estout <- tibble::tibble(
-        resp_rate = pop_dat$uns_resp_rate[[1]],
-        resp_bias = pop_dat$resp_bias[[1]],
-        true_harvest = thvst,
-        n = sum(pop_dat$init_resp, na.rm = T),
-        est_harvest = as.vector(init_est),
-        est_SE = as.vector(survey::SE(init_est)),
-        ARE = abs((est_harvest - true_harvest) / true_harvest),
-        sqer = ((est_harvest - true_harvest)^2)
+    } else if (follow_check == 0) {
+      estout <- data.frame(
+        resp_rate = pop_dat$init_uns_rate,
+        resp_bias = pop_dat$resp_bias,
+        n = init_n,
+        est_harvest = init_est,
+        est_SE = init_SE,
+        ARE = abs((init_est - thvst) / thvst),
+        sqer = ((init_est - thvst)^2)
       )
+    } else {
+      stop("Error with 'simdat' structure.")
     }
+
     return(estout)
   }
 
   # Use map() to pull individual simulations and make individual estimates:
   ests <- purrr::map_dfr(simdat, est_simp)
 
-  out <- output_summarizer(ests = ests, N = N)
+  out <- output_summarizer(ests, N, thvst)
   out <- as.data.frame(out)
   return(out)
 }
 
-# vol method ===================================================================
-#' @export
-est.survsim_vol <- function(simdat){
+# Helpers ======================================================================
 
-  simdat <- purrr::flatten(simdat)
-  N <- simdat[[1]]$pop_size[[1]]
-  thvst <- simdat[[1]]$true_harvest[[1]]
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Groups individual harvest estimate outputs and reports findings. This creates
+# a consistent output for all possible scenarios. Called by the est function.
+output_summarizer <- function(ests, N, thvst){
+  # Group, so avgs for each repetition of the same resp and bias can be made
+  ests <- dplyr::group_by(ests, resp_bias, resp_rate)
 
-  est_vol <- function(pop_dat){
-    init_resp_only <- dplyr::filter(pop_dat, init_resp == 1)
-    init_design <- survey::svydesign(
-      ids = ~1,
-      probs = nrow(init_resp_only) / N,
-      data = init_resp_only,
-      fpc = ~pop_size
-    )
-    init_est <- survey::svytotal(~harvest, init_design)
+  out <- dplyr::summarise(
+    ests,
+    N = N,
+    mean_n = mean(n),
+    true_harvest = thvst,
+    min_hvst_est = min(est_harvest),
+    max_hvst_est = max(est_harvest),
+    mean_hvst_est = mean(est_harvest),
+    mean_SE = mean(est_SE),
+    MARE = mean(ARE),
+    RRMSE = sqrt(mean(sqer)) / true_harvest,
+    .groups = "drop"
+  )
 
-    if ("fus_resp" %in% names(pop_dat)){
-      # if response rate was already 1 for everyone, there is nobody to
-      # follow up with,so skip the following step:
-      if (all(pop_dat$uns_resp_rate < 1) | all(pop_dat$suc_resp_rate < 1)){
+  var_order <- c(
+    "N", "resp_bias", "resp_rate", "mean_n", "true_harvest", "min_hvst_est",
+    "max_hvst_est", "mean_hvst_est", "mean_SE", "MARE", "RRMSE"
+  )
+  out <- out[, var_order]
+  out <- as.data.frame(out)
 
-        fus_resp_only <- dplyr::filter(pop_dat, fus_resp == 1)
-        fus_design <- survey::svydesign(ids = ~1,
-                                        probs = nrow(fus_resp_only) / N,
-                                        data = fus_resp_only,
-                                        fpc = ~pop_size)
+  return(out)
+}
 
-        fus_est <- survey::svytotal(~harvest, fus_design)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Checks for single 'N' and 'true_harvest' within simdat.
+extract_and_check <- function(x, check){
 
-        # The prop. of respondents to self-report IS the proportion
-        # of the population who reported. Can just take the mean because
-        # init_resp is binary:
-        init_prop <- mean(pop_dat$init_resp, na.rm = TRUE)
-
-        # assume fus respondents reflect the rest of the pop:
-        fus_prop  <- 1 - init_prop
-        combined_est <- (init_est * init_prop) + (fus_est * fus_prop)
-
-        combined_SE <- (init_prop * survey::SE(init_est)) +
-          (fus_prop * survey::SE(fus_est))
-
-        estout <- tibble::tibble(
-          resp_rate = pop_dat$uns_resp_rate[[1]],
-          resp_bias = pop_dat$resp_bias[[1]],
-          true_harvest = thvst,
-          n = sum(pop_dat$init_resp, pop_dat$fus_resp, na.rm = T),
-          est_harvest = as.vector(combined_est),
-          est_SE = as.vector(combined_SE),
-          ARE = abs((est_harvest - true_harvest) / true_harvest),
-          sqer = ((est_harvest - true_harvest)^2)
-        )
-
-      } else if (all(pop_dat$uns_resp_rate == 1) &
-                 all(pop_dat$suc_resp_rate == 1)){
-        # if everyone had an initial response rate of 1, then the entire
-        # population responded and there was nobody to follow up with:
-        estout <- tibble::tibble(
-          resp_rate = pop_dat$uns_resp_rate[[1]],
-          resp_bias = pop_dat$resp_bias[[1]],
-          true_harvest = thvst,
-          n = sum(pop_dat$init_resp, na.rm = T),
-          est_harvest = as.vector(init_est),
-          est_SE = as.vector(survey::SE(init_est)),
-          ARE = abs((est_harvest - true_harvest) / true_harvest),
-          sqer = ((est_harvest - true_harvest)^2)
-        )
-      } else {
-        stop ("Conflicting response rates in a single population",
-              call. = FALSE)
-      }
-
-    } else {
-      # If there was no follow up survey simulated:
-      estout <- tibble::tibble(
-        resp_rate = pop_dat$uns_resp_rate[[1]],
-        resp_bias = pop_dat$resp_bias[[1]],
-        true_harvest = thvst,
-        n = sum(pop_dat$init_resp, na.rm = T),
-        est_harvest = as.vector(init_est),
-        est_SE = as.vector(survey::SE(init_est)),
-        ARE = abs((est_harvest - true_harvest) / true_harvest),
-        sqer = ((est_harvest - true_harvest)^2)
-      )
-    }
-    return(estout)
+  y <- vector(mode = "integer", length = length(x))
+  for (i in 1:length(x)) {
+    y[i] <- x[[i]][[check]]
   }
 
-  # Use map() to pull individual simulations and make individual estimates:
-  ests <- purrr::map_dfr(simdat, est_vol)
-  out <- output_summarizer(ests = ests, N = N)
-  return(out)
+  if (length(unique(y)) == 1) {
+    return(y[[1]])
+  } else {
+    stop("Cannot make an estimate on multiple populations at once", call. = F)
+  }
+}
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Checks for follow up sims:
+is_follow <- function(check_me) {
+  sum(names(purrr::flatten(check_me)) %in% "fol_resp")
 }

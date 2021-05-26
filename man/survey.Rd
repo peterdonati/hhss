@@ -2,24 +2,32 @@
 % Please edit documentation in R/survey.R
 \name{survey}
 \alias{survey}
+\alias{census}
 \alias{mand}
 \alias{simple}
-\alias{vol}
 \title{Survey Simulations}
 \usage{
-mand(
+census(
   x,
   resp,
-  fus = FALSE,
-  bias = NULL,
-  fus_sample = NULL,
-  fus_scale = NULL,
+  bias,
+  fol = FALSE,
+  fol_sample = NULL,
+  fol_scale = NULL,
   times = 1
 )
 
-simple(x, sample, resp, bias, fus = FALSE, fus_scale = NULL, times = 1)
+mand(
+  x,
+  resp,
+  fol = FALSE,
+  bias = NULL,
+  fol_sample = NULL,
+  fol_scale = NULL,
+  times = 1
+)
 
-vol(x, resp, bias, fus = FALSE, fus_sample = NULL, fus_scale = NULL, times = 1)
+simple(x, sample, resp, bias, fol = FALSE, fol_scale = NULL, times = 1)
 }
 \arguments{
 \item{x}{An output from \code{\link{pop}}. It is the population to
@@ -27,24 +35,24 @@ simulate response for.}
 
 \item{resp}{Probability/probabilities of response.
 \itemize{
-    \item In \code{simple()} and \code{vol()} it defines response
+    \item In \code{simple()} and \code{census()} it defines response
         probabilities for unsuccessful hunters.
     \item In \code{mand()} it defines response probabilities for initial
         reporting, and then response probabilities for unsuccessful
         hunters in follow up samples.
 }}
 
-\item{fus}{Logical. If \code{TRUE}, a single follow up survey will be
+\item{bias}{Scales the value(s) supplied to \code{resp} to create response
+probabilities for successful hunters.
+Introduces response bias for any value not equal to 1.}
+
+\item{fol}{Logical. If \code{TRUE}, a single follow up survey will be
 simulated.}
 
-\item{bias}{Scales the rate(s) of response for successful hunters, relative
-to unsuccessful hunters. Introduces response bias for any value not
-equal to 1.}
-
-\item{fus_sample}{Probability that a non-respondent is sampled for a follow
+\item{fol_sample}{Probability that a non-respondent is sampled for a follow
 up survey.}
 
-\item{fus_scale}{Scales initial response probabilities,
+\item{fol_scale}{Scales initial response probabilities,
 creating new probabilities of response for follow up surveys.}
 
 \item{times}{The number of times to repeat the simulation.}
@@ -52,67 +60,70 @@ creating new probabilities of response for follow up surveys.}
 \item{sample}{Probability a hunter is sampled for a survey}
 }
 \value{
-A list of class \code{survsim_mand}, \code{survsim_simple},
-or \code{survsim_vol} where the length is equal to the
+A list of class \code{survsim_census}, \code{survsim_mand},
+or \code{survsim_simple} where the length is equal to the
 integer supplied to \code{times}. The ultimate elements are data frames
-where each row represents a hunter. A single data frame will contain some,
+that will contain some,
 but not all, of these variables:
 \itemize{
-\item \code{method}: The survey method that was used to gather responses.
-\item \code{pop_size}: The population size.
+\item \code{N}: The population size.
 \item \code{true_harvest}: The sum of harvests from the population.
-\item \code{group}: The group in which the hunter was placed.
-\item \code{harvest}: 1 for a successful hunter, and 0 if unsuccessful.
-\item \code{sample}: 1 if the hunter was asked to participate in the
-initial survey, 0 otherwise.
-\item \code{resp_bias}: The response bias currently being simulated.
-\item \code{resp_rate}: Only reported in \code{mand()} outputs.
-It is the response probability for successful hunters to initially report.
-\item \code{uns_resp_rate}: The probability at which a hunter will respond
-to an initial survey if they were unsuccessful.
-\item \code{suc_resp_rate}: The probability at which a hunter will respond
-to an initial survey if they were successful.
-\item \code{init_resp}: 1 if the hunter responded to the initial survey,
-0 otherwise.
-\item \code{fus_uns_resp_rate}: The probability at which a hunter will
-respond to a follow up survey if they were unsuccessful.
-\item \code{fus_suc_resp_rate}: The probability at which a hunter will
-respond to a follow up survey if they were successful.
-\item \code{fus_sample}: 1 if the hunter was asked to participate in a
-follow up survey, 0 otherwise.
-\item \code{fus_resp}: 1 if they responded to the follow up survey,
-0 otherwise.
+\item \code{resp_bias}: The response bias simulated.
+\item \code{init_rate}: The response probability for hunters to
+    initially report harvest. Only reported in \code{mand()} outputs.
+\item \code{init_uns_rate}: The probability at which a hunter responded
+    to an initial survey if they were unsuccessful in harvesting.
+\item \code{init_suc_rate}: The probability at which a hunter responded
+    to an initial survey if they were successful in harvesting.
+\item \code{init_sample}: The sum of hunters sampled in initial survey.
+\item \code{init_resp}: The sum of responses to intial survey.
+\item \code{init_yes}: The sum of initial responses that were from hunters
+    who harvested.
+\item \code{init_no}: The sum of initial responses that were from hunters
+    who did not harvest.
+\item \code{fol_sample}: The sum of hunters sampled for follow up.
+\item \code{fol_uns_rate}: The probability at which a hunter
+    responded to a follow up survey if they did not harvest.
+\item \code{fol_suc_rate}: The probability at which a hunter
+    responded to a follow up survey if they harvested.
+\item \code{fol_resp}: The sum of hunters that responded to the follow up.
+\item \code{fol_yes}: The sum of follow up responses that were from hunters
+    who harvested.
+\item \code{fol_no}: The sum of follow up responses that were from hunters
+    who did not harvest.
 }
 }
 \description{
 The survey functions take an output from \code{\link{pop}} and simulate
 survey responses based on the method specified.
 \itemize{
+    \item \code{census()} creates a simulation where
+        \strong{\emph{all hunters report, successful or not.}}
+        This can mimic both mandatory reporting for all hunters
+        as well as voluntary reporting.
+        Follow up surveys can be completed on the non-responding portion
+        of the population by simple random sampling.
     \item \code{mand()} creates a simulation where \strong{\emph{only
-        successful hunters are mandated to report}} and a follow up sample of
-        non-reporters can be taken through a simple random sample.
+        successful hunters report}} and a follow up sample of
+        non-respondents can be taken through a simple random sample.
     \item \code{simple()} creates a simulation where a population of hunters
-        are surveyed using a simple random sample and a follow up survey of
-        non-respondents from the original sample pool can be taken.
-    \item \code{vol()} creates a simulation where \strong{\emph{all hunters
-        report, successful or not.}} Similar to voluntary reporting,
-        or mandatory regardless of success.
-        Follow up surveys are completed on the non-responding portion of the
-        population by simple random sampling.
+        are surveyed using a simple random sample. Follow up survey is
+        completed by following up with all non-respondents from the
+        initial sample.
 }
 }
 \details{
 More than one value can be supplied to \code{resp} and \code{bias}. These
 functions automatically create a full factorial design on
 these two arguments.
-\cr\cr
+\cr
 
 If any scaling arguments scale probabilities to be > 1, the
 probabilities will silently be limited to 1.
 }
 \examples{
 # First, create a population:
-my_pop <- pop(N = 1000, split = 0.7, success1 = 0.25, success0 = 0.6)
+my_pop <- pop(N = 1000, split = 0.7, success1 = 0.25, success2 = 0.6)
 
 # Simulate a simple random sample from that population:
 simple(
@@ -121,17 +132,18 @@ simple(
   resp = 0.3,
   bias = 1,
   times = 10
-  )
+)
 
-# Multiple values can be passed to 'resp' and 'bias' arguments:
-vol(
+# Multiple values can be passed to 'resp' and 'bias' arguments to create
+# simulations for each unique pairing of the two:
+census(
   my_pop,
   resp = seq(0.3, 0.8, 0.1),
   bias = c(1, 1.1, 1.2),
-  fus = TRUE,
-  fus_scale = 0.7,
-  fus_sample = 0.4,
+  fol = TRUE,
+  fol_sample = 0.4,
+  fol_scale = 0.7,
   times = 10
-  )
+)
 
 }
