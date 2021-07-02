@@ -1,7 +1,7 @@
 Package: hhss
 Type: Package
 Title: Hunter Harvest Survey Simulations
-Version: 1.0.0
+Version: 1.0.0.01
 Depends: 
     R (>= 3.3.0)
 Imports: 

@@ -451,8 +451,8 @@ simple <- function(x, sample, resp, bias,
 
       ss_out <- dplyr::mutate(
         ss_out,
-        fol_uns_rate = fol_uns_rate,
-        fol_suc_rate = fol_suc_rate,
+        fol_uns_rate,
+        fol_suc_rate,
         fol_resp = fol_yes + fol_no,
         fol_yes,
         fol_no

@@ -38,8 +38,8 @@
 #'     relative to unsuccessful hunters.
 #' \item \code{resp_rate}: Underlying response probability, before any
 #'     scaling/bias.
-#' \item \code{mean_n}: Average total responses. Includes both initial
-#'     and follow-up responses.
+#' \item \code{mean_init_n}: Average total initial survey responses.
+#' \item \code{mean_fol_n}: Average total follow-up survey responses.
 #' \item \code{true_harvest}: True harvest of population.
 #' \item \code{min_hvst_est}: Minimum harvest estimate of the survey
 #'     repetitions (if any) at the response bias and response rate shown for that row.
@@ -89,14 +89,11 @@ est.survsim_census <- function(simdat){
 
   est_census <- function(pop_dat){
 
-    init_ones <- rep(1, pop_dat$init_yes)
-    init_zeroes <- rep(0, pop_dat$init_no)
-    init_responses <- c(init_ones, init_zeroes)
-
     init_n <- pop_dat$init_resp
     init_weight <- N / init_n
 
-    init_SE <- (sd(init_responses) / sqrt(init_n)) * init_weight * init_n
+    init_sd <- short_sd(init_n, pop_dat$init_yes)
+    init_SE <- (init_sd / sqrt(init_n)) * init_weight * init_n
     init_SE <- init_SE * sqrt((N - init_n) / (N - 1)) # fpc
 
     init_est <- as.integer(pop_dat$init_yes * init_weight) # shave decimals
@@ -106,14 +103,11 @@ est.survsim_census <- function(simdat){
 
       if (pop_dat$fol_resp != 0) {
 
-        fol_ones <- rep(1, pop_dat$fol_yes)
-        fol_zeroes <- rep(0, pop_dat$fol_no)
-        fol_responses <- c(fol_ones, fol_zeroes)
-
         fol_n <- pop_dat$fol_resp
         fol_weight <- N / fol_n
 
-        fol_SE <- (sd(fol_responses) / sqrt(fol_n)) * fol_weight * fol_n
+        fol_sd <- short_sd(fol_n, pop_dat$fol_yes)
+        fol_SE <- (fol_sd / sqrt(fol_n)) * fol_weight * fol_n
         fol_SE <-  fol_SE * sqrt((N - fol_n) / (N - 1)) # fpc
 
         fol_est <- as.integer(pop_dat$fol_yes * fol_weight)
@@ -130,7 +124,8 @@ est.survsim_census <- function(simdat){
         estout <- data.frame(
           resp_rate = pop_dat$init_uns_rate,
           resp_bias = pop_dat$resp_bias,
-          n = init_n + fol_n,
+          init_n,
+          fol_n,
           est_harvest = combined_est,
           est_SE = combined_SE,
           ARE = abs((combined_est - thvst) / thvst),
@@ -140,7 +135,8 @@ est.survsim_census <- function(simdat){
         estout <- data.frame(
           resp_rate = pop_dat$init_uns_rate,
           resp_bias = pop_dat$resp_bias,
-          n = init_n,
+          init_n,
+          fol_n = NA,
           est_harvest = init_est,
           est_SE = init_SE,
           ARE = abs((init_est - thvst) / thvst),
@@ -154,7 +150,8 @@ est.survsim_census <- function(simdat){
       estout <- data.frame(
         resp_rate = pop_dat$init_uns_rate,
         resp_bias = pop_dat$resp_bias,
-        n = init_n,
+        init_n,
+        fol_n = NA,
         est_harvest = init_est,
         est_SE = init_SE,
         ARE = abs((init_est - thvst) / thvst),
@@ -187,12 +184,9 @@ est.survsim_mand <- function(simdat){
     init_est <- pop_dat$init_resp
 
     follow_check <- is_follow(simdat)
+
     if (follow_check == length(simdat)){
       if (pop_dat$fol_resp != 0) {
-
-        fol_ones <- rep(1, pop_dat$fol_yes)
-        fol_zeroes <- rep(0, pop_dat$fol_no)
-        fol_responses <- c(fol_ones, fol_zeroes)
 
         fol_n <- pop_dat$fol_resp
         # N for follow up is whoever didn't report initially because the
@@ -200,7 +194,8 @@ est.survsim_mand <- function(simdat){
         fol_N <- pop_dat$N - pop_dat$init_resp
         fol_weight <- fol_N / fol_n
 
-        fol_SE <- (sd(fol_responses) / sqrt(fol_n)) * fol_weight * fol_n
+        fol_sd <- short_sd(fol_n, pop_dat$fol_yes)
+        fol_SE <- (fol_sd / sqrt(fol_n)) * fol_weight * fol_n
         fol_SE <- fol_SE * sqrt((fol_N - fol_n) / (fol_N - 1)) # fpc
 
         fol_est <- as.integer(pop_dat$fol_yes * fol_weight) # shave decimals
@@ -210,7 +205,8 @@ est.survsim_mand <- function(simdat){
         estout <- data.frame(
           resp_rate = pop_dat$init_rate,
           resp_bias = pop_dat$resp_bias,
-          n = sum(pop_dat$init_resp, pop_dat$fol_resp),
+          init_n = pop_dat$init_resp,
+          fol_n = pop_dat$fol_resp,
           est_harvest = combined_est,
           est_SE = fol_SE, # Assume no error for init.
           ARE = abs((combined_est - thvst) / thvst),
@@ -219,8 +215,9 @@ est.survsim_mand <- function(simdat){
       } else if (pop_dat$fol_resp == 0) {
         estout <- data.frame(
           resp_rate = pop_dat$init_rate,
-          resp_bias = NA_real_,
-          n = init_est,
+          resp_bias = NA,
+          init_n = init_est,
+          fol_n = NA,
           est_harvest = init_est,
           est_SE = 0L, # Because assuming 100% reporting
           ARE = abs((init_est - thvst) / thvst),
@@ -231,8 +228,9 @@ est.survsim_mand <- function(simdat){
     } else if (follow_check == 0) {
       estout <- data.frame(
         resp_rate = pop_dat$init_rate,
-        resp_bias = NA_real_,
-        n = init_est,
+        resp_bias = NA,
+        init_n = init_est,
+        fol_n = NA,
         est_harvest = init_est,
         est_SE = 0L, # Because assuming 100% reporting
         ARE = abs((init_est - thvst) / thvst),
@@ -264,14 +262,11 @@ est.survsim_simple <- function(simdat){
 
   est_simp <- function(pop_dat){
 
-    init_ones <- rep(1, pop_dat$init_yes)
-    init_zeroes <- rep(0, pop_dat$init_no)
-    init_responses <- c(init_ones, init_zeroes)
-
     init_n <- pop_dat$init_resp
     init_weight <- N / init_n
 
-    init_SE <- (sd(init_responses) / sqrt(init_n)) * init_weight * init_n
+    init_sd <- short_sd(init_n, pop_dat$init_yes)
+    init_SE <- (init_sd / sqrt(init_n)) * init_weight * init_n
     init_SE <- init_SE * sqrt((N - init_n) / (N - 1)) # fpc
 
     init_est <- as.integer(pop_dat$init_yes * init_weight) # shave decimals
@@ -280,14 +275,11 @@ est.survsim_simple <- function(simdat){
     if (follow_check == length(simdat)){
       if (pop_dat$fol_resp != 0) {
 
-        fol_ones <- rep(1, pop_dat$fol_yes)
-        fol_zeroes <- rep(0, pop_dat$fol_no)
-        fol_responses <- c(fol_ones, fol_zeroes)
-
         fol_n <- pop_dat$fol_resp
         fol_weight <- N / fol_n
 
-        fol_SE <- (sd(fol_responses) / sqrt(fol_n)) * fol_weight * fol_n
+        fol_sd <- short_sd(fol_n, pop_dat$fol_yes)
+        fol_SE <- (fol_sd / sqrt(fol_n)) * fol_weight * fol_n
         fol_SE <- fol_SE * sqrt((N - fol_n) / (N - 1)) # fpc
 
         fol_est <- as.integer(pop_dat$fol_yes * fol_weight)
@@ -305,7 +297,8 @@ est.survsim_simple <- function(simdat){
         estout <- data.frame(
           resp_rate = pop_dat$init_uns_rate,
           resp_bias = pop_dat$resp_bias,
-          n = init_n + fol_n,
+          init_n,
+          fol_n,
           est_harvest = combined_est,
           est_SE = combined_SE,
           ARE = abs((combined_est - thvst) / thvst),
@@ -315,7 +308,8 @@ est.survsim_simple <- function(simdat){
         estout <- data.frame(
           resp_rate = pop_dat$init_uns_rate,
           resp_bias = pop_dat$resp_bias,
-          n = init_n,
+          init_n,
+          fol_n = NA,
           est_harvest = init_est,
           est_SE = init_SE,
           ARE = abs((init_est - thvst) / thvst),
@@ -328,7 +322,8 @@ est.survsim_simple <- function(simdat){
       estout <- data.frame(
         resp_rate = pop_dat$init_uns_rate,
         resp_bias = pop_dat$resp_bias,
-        n = init_n,
+        init_n,
+        fol_n = NA,
         est_harvest = init_est,
         est_SE = init_SE,
         ARE = abs((init_est - thvst) / thvst),
@@ -361,7 +356,8 @@ output_summarizer <- function(ests, N, thvst){
   out <- dplyr::summarise(
     ests,
     N = N,
-    mean_n = mean(n),
+    mean_init_n = round(mean(init_n), 2),
+    mean_fol_n = round(mean(fol_n), 2),
     true_harvest = thvst,
     min_hvst_est = min(est_harvest),
     max_hvst_est = max(est_harvest),
@@ -373,10 +369,10 @@ output_summarizer <- function(ests, N, thvst){
   )
 
   var_order <- c(
-    "N", "resp_bias", "resp_rate", "mean_n", "true_harvest", "min_hvst_est",
+    "N", "resp_bias", "resp_rate", "mean_init_n", "mean_fol_n", "true_harvest", "min_hvst_est",
     "max_hvst_est", "mean_hvst_est", "mean_SE", "MARE", "RRMSE"
   )
-  out <- out[, var_order]
+  out <- out[ , var_order]
   out <- as.data.frame(out)
 
   return(out)
@@ -402,4 +398,19 @@ extract_and_check <- function(x, check){
 # Checks for follow up sims:
 is_follow <- function(check_me) {
   sum(names(purrr::flatten(check_me)) %in% "fol_resp")
+}
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Variation on std. dev shortcut formula. binary data only,
+# so sum(observations^2) = sum(observations). 0^2 = 0 so also only need to know
+# the sum of observations that were 1.
+short_sd <- function(n, sum) {
+
+  # To avoid integer overload for large populations:
+  n <- as.numeric(n)
+  sum <- as.numeric(sum)
+
+  find_sqrt <- (n * sum - sum^2) / (n * (n - 1))
+  found_it <- sqrt(find_sqrt)
+  return(found_it)
 }

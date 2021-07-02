@@ -18,8 +18,8 @@ A data frame, containing the following variables:
     relative to unsuccessful hunters.
 \item \code{resp_rate}: Underlying response probability, before any
     scaling/bias.
-\item \code{mean_n}: Average total responses. Includes both initial
-    and follow-up responses.
+\item \code{mean_init_n}: Average total initial survey responses.
+\item \code{mean_fol_n}: Average total follow-up survey responses.
 \item \code{true_harvest}: True harvest of population.
 \item \code{min_hvst_est}: Minimum harvest estimate of the survey
     repetitions (if any) at the response bias and response rate shown for that row.
