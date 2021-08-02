@@ -96,7 +96,7 @@ est.survsim_census <- function(simdat){
     init_SE <- (init_sd / sqrt(init_n)) * init_weight * init_n
     init_SE <- init_SE * sqrt((N - init_n) / (N - 1)) # fpc
 
-    init_est <- as.integer(pop_dat$init_yes * init_weight) # shave decimals
+    init_est <- trunc(pop_dat$init_yes * init_weight)
 
     follow_check <- is_follow(simdat)
     if (follow_check == length(simdat)){
@@ -110,7 +110,7 @@ est.survsim_census <- function(simdat){
         fol_SE <- (fol_sd / sqrt(fol_n)) * fol_weight * fol_n
         fol_SE <-  fol_SE * sqrt((N - fol_n) / (N - 1)) # fpc
 
-        fol_est <- as.integer(pop_dat$fol_yes * fol_weight)
+        fol_est <- trunc(pop_dat$fol_yes * fol_weight)
 
         # No init sample, so full proportion with N:
         init_prop <- init_n / N
@@ -118,7 +118,7 @@ est.survsim_census <- function(simdat){
         fol_prop <- 1 - init_prop
 
         combined_est <- (init_est * init_prop) + (fol_est * fol_prop)
-        combined_est <- as.integer(combined_est)
+        combined_est <- trunc(combined_est)
         combined_SE <- (init_SE * init_prop) + (fol_SE * fol_prop)
 
         estout <- data.frame(
@@ -198,7 +198,7 @@ est.survsim_mand <- function(simdat){
         fol_SE <- (fol_sd / sqrt(fol_n)) * fol_weight * fol_n
         fol_SE <- fol_SE * sqrt((fol_N - fol_n) / (fol_N - 1)) # fpc
 
-        fol_est <- as.integer(pop_dat$fol_yes * fol_weight) # shave decimals
+        fol_est <- trunc(pop_dat$fol_yes * fol_weight)
 
         combined_est <- init_est + fol_est
 
@@ -269,7 +269,7 @@ est.survsim_simple <- function(simdat){
     init_SE <- (init_sd / sqrt(init_n)) * init_weight * init_n
     init_SE <- init_SE * sqrt((N - init_n) / (N - 1)) # fpc
 
-    init_est <- as.integer(pop_dat$init_yes * init_weight) # shave decimals
+    init_est <- trunc(pop_dat$init_yes * init_weight)
 
     follow_check <- is_follow(simdat)
     if (follow_check == length(simdat)){
@@ -282,7 +282,7 @@ est.survsim_simple <- function(simdat){
         fol_SE <- (fol_sd / sqrt(fol_n)) * fol_weight * fol_n
         fol_SE <- fol_SE * sqrt((N - fol_n) / (N - 1)) # fpc
 
-        fol_est <- as.integer(pop_dat$fol_yes * fol_weight)
+        fol_est <- trunc(pop_dat$fol_yes * fol_weight)
 
         # assume proportion of respondents to initial sample represents the
         # same proportion of entire population:
@@ -291,7 +291,7 @@ est.survsim_simple <- function(simdat){
         fol_prop  <- 1 - init_prop
 
         combined_est <- (init_est * init_prop) + (fol_est * fol_prop)
-        combined_est <- as.integer(combined_est)
+        combined_est <- trunc(combined_est)
         combined_SE <- (init_SE * init_prop) + (fol_SE * fol_prop)
 
         estout <- data.frame(
